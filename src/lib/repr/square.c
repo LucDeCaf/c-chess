@@ -1,6 +1,6 @@
-#include "../../../include/square.h"
+#include "../../../include/chess/internal/square.h"
 
-U64 square_mask(Square square) {
+uint64_t square_mask(Square square) {
     return 1 << square;
 }
 

@@ -1,4 +1,4 @@
-#include "../../include/board.h"
+#include "../../include/chess/internal/board.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,6 +24,11 @@ int main() {
         // -- COMMANDS
         if (strncmp(buf, "exit", 4) == 0) {
             break;
+        }
+
+        if (strncmp(buf, "clear", 4) == 0) {
+            printf("\e[1;1H\e[2J");
+            continue;
         }
 
         if (strncmp(buf, "print", 5) == 0) {
@@ -67,7 +72,7 @@ void handle_print(Board *board) {
     for (int i = 0; i < 12; i++) {
         Piece piece = i > 5 ? i - 6 : i;
         Color color = i > 5;
-        U64 bb = board->bitboards[i];
+        uint64_t bb = board->bitboards[i];
 
         int sq = 0;
         while (bb) {

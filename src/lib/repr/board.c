@@ -1,8 +1,8 @@
-#include "../../../include/board.h"
-#include "../../../include/color.h"
-#include "../../../include/move.h"
-#include "../../../include/piece.h"
-#include "../../../include/square.h"
+#include "../../../include/chess/internal/board.h"
+#include "../../../include/chess/internal/color.h"
+#include "../../../include/chess/internal/move.h"
+#include "../../../include/chess/internal/piece.h"
+#include "../../../include/chess/internal/square.h"
 
 enum {
     BB_KNIGHT_BLACK = 0,
@@ -49,7 +49,7 @@ void board_init(Board *board) {
     board->fullmoves = 1;
 }
 
-U64 *board_bitboard(Board *board, Piece piece, Color color) {
+uint64_t *board_bitboard(Board *board, Piece piece, Color color) {
     return &board->bitboards[piece + 6 * color];
 }
 
@@ -64,12 +64,12 @@ void board_make_move(Board *board, Move move) {
     Piece captured_piece = board_piece_at(board, target);
 
     // Move moved piece
-    U64 *moved_bb = board_bitboard(board, moved_piece, moved_color);
+    uint64_t *moved_bb = board_bitboard(board, moved_piece, moved_color);
     *moved_bb ^= square_mask(source) | square_mask(target);
 
     // If capture, remove captured piece
     if (captured_piece != PieceNone) {
-        U64 *captured_bb =
+        uint64_t *captured_bb =
             board_bitboard(board, captured_piece, color_inverse(moved_color));
         *captured_bb ^= square_mask(target);
     }
@@ -88,7 +88,7 @@ void board_make_move(Board *board, Move move) {
 }
 
 Piece board_piece_at(Board *board, Square square) {
-    U64 mask = square_mask(square);
+    uint64_t mask = square_mask(square);
 
     for (int i = 0; i < 12; i++) {
         if (board->bitboards[i] & mask) {

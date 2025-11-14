@@ -7,7 +7,7 @@
 #include "piece.h"
 
 typedef struct {
-    U64 bitboards[12];
+    uint64_t bitboards[12];
     Color current_turn;
     uint8_t flags;      // en passant, castling rights
     uint8_t halfmoves;  // 75 move rule

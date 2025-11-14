@@ -1,7 +1,7 @@
 #ifndef SQUARE_H
 #define SQUARE_H
 
-#include "bitboard.h"
+#include <stdint.h>
 
 typedef enum {
     A1,
@@ -70,7 +70,7 @@ typedef enum {
     H8,
 } Square;
 
-U64 square_mask(Square);
+uint64_t square_mask(Square);
 uint8_t square_rank(Square);
 uint8_t square_file(Square);
 
