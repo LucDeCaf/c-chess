@@ -16,13 +16,13 @@ int magic_index(MagicEntry *entry, uint64_t blockers) {
 }
 
 uint64_t rook_moves(Square square, uint64_t blockers) {
-    MagicEntry magic = all_rook_magics[square];
-    uint64_t *moves = all_rook_moves[square];
+    MagicEntry magic = ROOK_MAGICS[square];
+    uint64_t *moves = ROOK_MOVES[square];
     return moves[magic_index(&magic, blockers)];
 }
 
 uint64_t bishop_moves(Square square, uint64_t blockers) {
-    MagicEntry magic = all_bishop_magics[square];
-    uint64_t *moves = all_bishop_moves[square];
+    MagicEntry magic = BISHOP_MAGICS[square];
+    uint64_t *moves = BISHOP_MOVES[square];
     return moves[magic_index(&magic, blockers)];
 }

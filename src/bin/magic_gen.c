@@ -1,118 +1,232 @@
+#include <asm-generic/errno-base.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
-uint64_t random_u64() {
-    uint64_t a, b, c, d;
-    a = (uint64_t)rand() & 0xFFFF;
-    b = (uint64_t)rand() & 0xFFFF;
-    c = (uint64_t)rand() & 0xFFFF;
-    d = (uint64_t)rand() & 0xFFFF;
-
-    return a | (b << 16) | (c << 32) | (d << 48);
+uint64_t random_uint64() {
+    uint64_t u1, u2, u3, u4;
+    u1 = (uint64_t)(random()) & 0xFFFF;
+    u2 = (uint64_t)(random()) & 0xFFFF;
+    u3 = (uint64_t)(random()) & 0xFFFF;
+    u4 = (uint64_t)(random()) & 0xFFFF;
+    return u1 | (u2 << 16) | (u3 << 32) | (u4 << 48);
 }
 
-int popcount(uint64_t mask) {
-    int n = 0;
-    while (mask) {
-        n++;
-        mask &= mask - 1;
-    }
-    return n;
+int popcount(uint64_t b) {
+    int r;
+    for (r = 0; b; r++, b &= b - 1)
+        ;
+    return r;
 }
 
-uint64_t rook_mask(int square) {
-    uint64_t result = 0;
-    int rank = square / 8;
-    int file = square % 8;
+const int BitTable[64] = {63, 30, 3,  32, 25, 41, 22, 33, 15, 50, 42, 13, 11,
+                          53, 19, 34, 61, 29, 2,  51, 21, 43, 45, 10, 18, 47,
+                          1,  54, 9,  57, 0,  35, 62, 31, 40, 4,  49, 5,  52,
+                          26, 60, 6,  23, 44, 46, 27, 56, 16, 7,  39, 48, 24,
+                          59, 14, 12, 55, 38, 28, 58, 20, 37, 17, 36, 8};
 
-    int r, f;
-    for (r = rank + 1; r <= 6; r++)
-        result |= (1ull << (file + r * 8));
-    for (r = rank - 1; r >= 1; r--)
-        result |= (1ull << (file + r * 8));
-    for (f = file + 1; f <= 6; f++)
-        result |= (1ull << (f + rank * 8));
-    for (f = file - 1; f >= 1; f--)
-        result |= (1ull << (f + rank * 8));
-    return result;
+int pop_1st_bit(uint64_t *bb) {
+    uint64_t b = *bb ^ (*bb - 1);
+    unsigned int fold = (unsigned)((b & 0xffffffff) ^ (b >> 32));
+    *bb &= (*bb - 1);
+    return BitTable[(fold * 0x783a9b23) >> 26];
 }
 
-uint64_t bishop_mask(int square) {
-    uint64_t result = 0;
-    int rank = square / 8;
-    int file = square % 8;
-
-    int r, f;
-    for (r = rank + 1, f = file + 1; r <= 6 && f <= 6; r++, f++)
-        result |= (1ull << (f + r * 8));
-    for (r = rank + 1, f = file - 1; r <= 6 && f >= 1; r++, f--)
-        result |= (1ull << (f + r * 8));
-    for (r = rank - 1, f = file + 1; r >= 1 && f <= 6; r--, f++)
-        result |= (1ull << (f + r * 8));
-    for (r = rank - 1, f = file - 1; r >= 1 && f >= 1; r--, f--)
-        result |= (1ull << (f + r * 8));
-    return result;
-}
-
-uint64_t rook_attacks(int square, uint64_t block) {
-    uint64_t result = 0;
-    int rank = square / 8;
-    int file = square % 8;
-
-    int r, f;
-    for (r = rank + 1; r <= 7; r++) {
-        result |= (1ull << (file + r * 8));
-        if (block & (1ull << (file + r * 8)))
-            break;
-    }
-    for (r = rank - 1; r >= 0; r--) {
-        result |= (1ull << (file + r * 8));
-        if (block & (1ull << (file + r * 8)))
-            break;
-    }
-    for (f = file + 1; f <= 7; f++) {
-        result |= (1ull << (f + rank * 8));
-        if (block & (1ull << (f + rank * 8)))
-            break;
-    }
-    for (f = file - 1; f >= 0; f--) {
-        result |= (1ull << (f + rank * 8));
-        if (block & (1ull << (f + rank * 8)))
-            break;
+uint64_t index_to_uint64(int index, int bits, uint64_t m) {
+    int i, j;
+    uint64_t result = 0ULL;
+    for (i = 0; i < bits; i++) {
+        j = pop_1st_bit(&m);
+        if (index & (1 << i))
+            result |= (1ULL << j);
     }
     return result;
 }
 
-uint64_t bishop_attacks(int square, uint64_t block) {
-    uint64_t result = 0;
-    int rank = square / 8;
-    int file = square % 8;
-
-    int r, f;
-
-    for (r = rank + 1, f = file + 1; r <= 7 && f <= 7; r++, f++) {
-        result |= (1ull << (f + r * 8));
-        if (block & (1ull << (f + r * 8)))
-            break;
-    }
-    for (r = rank + 1, f = file - 1; r <= 7 && f >= 0; r++, f--) {
-        result |= (1ull << (f + r * 8));
-        if (block & (1ull << (f + r * 8)))
-            break;
-    }
-    for (r = rank - 1, f = file + 1; r >= 0 && f <= 7; r--, f++) {
-        result |= (1ull << (f + r * 8));
-        if (block & (1ull << (f + r * 8)))
-            break;
-    }
-    for (r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--) {
-        result |= (1ull << (f + r * 8));
-        if (block & (1ull << (f + r * 8)))
-            break;
-    }
-
+uint64_t rmask(int sq) {
+    uint64_t result = 0ULL;
+    int rk = sq / 8, fl = sq % 8, r, f;
+    for (r = rk + 1; r <= 6; r++)
+        result |= (1ULL << (fl + r * 8));
+    for (r = rk - 1; r >= 1; r--)
+        result |= (1ULL << (fl + r * 8));
+    for (f = fl + 1; f <= 6; f++)
+        result |= (1ULL << (f + rk * 8));
+    for (f = fl - 1; f >= 1; f--)
+        result |= (1ULL << (f + rk * 8));
     return result;
 }
 
-int magic_index(int square, uint64_t blockers) {
+uint64_t bmask(int sq) {
+    uint64_t result = 0ULL;
+    int rk = sq / 8, fl = sq % 8, r, f;
+    for (r = rk + 1, f = fl + 1; r <= 6 && f <= 6; r++, f++)
+        result |= (1ULL << (f + r * 8));
+    for (r = rk + 1, f = fl - 1; r <= 6 && f >= 1; r++, f--)
+        result |= (1ULL << (f + r * 8));
+    for (r = rk - 1, f = fl + 1; r >= 1 && f <= 6; r--, f++)
+        result |= (1ULL << (f + r * 8));
+    for (r = rk - 1, f = fl - 1; r >= 1 && f >= 1; r--, f--)
+        result |= (1ULL << (f + r * 8));
+    return result;
+}
+
+uint64_t ratt(int sq, uint64_t block) {
+    uint64_t result = 0ULL;
+    int rk = sq / 8, fl = sq % 8, r, f;
+    for (r = rk + 1; r <= 7; r++) {
+        result |= (1ULL << (fl + r * 8));
+        if (block & (1ULL << (fl + r * 8)))
+            break;
+    }
+    for (r = rk - 1; r >= 0; r--) {
+        result |= (1ULL << (fl + r * 8));
+        if (block & (1ULL << (fl + r * 8)))
+            break;
+    }
+    for (f = fl + 1; f <= 7; f++) {
+        result |= (1ULL << (f + rk * 8));
+        if (block & (1ULL << (f + rk * 8)))
+            break;
+    }
+    for (f = fl - 1; f >= 0; f--) {
+        result |= (1ULL << (f + rk * 8));
+        if (block & (1ULL << (f + rk * 8)))
+            break;
+    }
+    return result;
+}
+
+uint64_t batt(int sq, uint64_t block) {
+    uint64_t result = 0ULL;
+    int rk = sq / 8, fl = sq % 8, r, f;
+    for (r = rk + 1, f = fl + 1; r <= 7 && f <= 7; r++, f++) {
+        result |= (1ULL << (f + r * 8));
+        if (block & (1ULL << (f + r * 8)))
+            break;
+    }
+    for (r = rk + 1, f = fl - 1; r <= 7 && f >= 0; r++, f--) {
+        result |= (1ULL << (f + r * 8));
+        if (block & (1ULL << (f + r * 8)))
+            break;
+    }
+    for (r = rk - 1, f = fl + 1; r >= 0 && f <= 7; r--, f++) {
+        result |= (1ULL << (f + r * 8));
+        if (block & (1ULL << (f + r * 8)))
+            break;
+    }
+    for (r = rk - 1, f = fl - 1; r >= 0 && f >= 0; r--, f--) {
+        result |= (1ULL << (f + r * 8));
+        if (block & (1ULL << (f + r * 8)))
+            break;
+    }
+    return result;
+}
+
+int transform(uint64_t b, uint64_t magic, int bits) {
+    return (int)((b * magic) >> (64 - bits));
+}
+
+uint64_t find_magic(int sq, int m, int bishop) {
+    uint64_t mask, b[4096], a[4096], used[4096], magic;
+    int i, j, k, n, fail;
+
+    mask = bishop ? bmask(sq) : rmask(sq);
+    n = popcount(mask);
+
+    for (i = 0; i < (1 << n); i++) {
+        b[i] = index_to_uint64(i, n, mask);
+        a[i] = bishop ? batt(sq, b[i]) : ratt(sq, b[i]);
+    }
+    for (k = 0; k < 100000000; k++) {
+        magic = random_uint64() & random_uint64() & random_uint64();
+        if (popcount((mask * magic) & 0xFF00000000000000ULL) < 6)
+            continue;
+        for (i = 0; i < 4096; i++)
+            used[i] = 0ULL;
+        for (i = 0, fail = 0; !fail && i < (1 << n); i++) {
+            j = transform(b[i], magic, m);
+            if (used[j] == 0ULL)
+                used[j] = a[i];
+            else if (used[j] != a[i])
+                fail = 1;
+        }
+        if (!fail)
+            return magic;
+    }
+    printf("***Failed***\n");
+    return 0ULL;
+}
+
+int RBits[64] = {12, 11, 11, 11, 11, 11, 11, 12, 11, 10, 10, 10, 10,
+                 10, 10, 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10,
+                 10, 10, 10, 10, 10, 11, 11, 10, 10, 10, 10, 10, 10,
+                 11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
+                 10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};
+
+int BBits[64] = {6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5,
+                 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
+                 5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5,
+                 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6};
+
+int dir_exists(const char *path) {
+    struct stat buf;
+    if (stat(path, &buf) != 0)
+        return 0;
+    return S_ISDIR(buf.st_mode);
+}
+
+int main() {
+    if (!dir_exists("src/lib")) {
+        printf("Failed to find src/lib in pwd\n");
+        exit(1);
+    }
+
+    if (!dir_exists("src/lib/gen")) {
+        if (mkdir("src/lib/gen", 0777) == -1) {
+            printf("Failed to make directory src/lib/gen\n");
+            exit(1);
+        }
+    }
+
+    FILE *fp = fopen("src/lib/gen/magics.c", "w");
+    if (fp == NULL) {
+        printf("Failed to open file\n");
+        exit(1);
+    }
+
+    int square;
+
+    fprintf(fp, "#include \"../../../include/chess/internal/magic.h\"\n\n");
+
+    puts("Generating rook magics...");
+    fprintf(fp, "const MagicEntry ROOK_MAGICS[64] = {\n");
+    for (square = 0; square < 64; square++) {
+        uint64_t magic = find_magic(square, RBits[square], 0);
+        printf("%d: 0x%llxULL\n", square, magic);
+        fprintf(fp,
+                "    {.magic = 0x%llxULL, .mask = 0x%llxULL, .shift = "
+                "%d},\n",
+                magic, rmask(square), RBits[square]);
+    }
+    fprintf(fp, "};\n\n");
+
+    puts("Generating bishop magics...");
+    fprintf(fp, "const MagicEntry BISHOP_MAGICS[64] = {\n");
+    for (square = 0; square < 64; square++) {
+        uint64_t magic = find_magic(square, BBits[square], 1);
+        printf("%d: 0x%llxULL\n", square, magic);
+        fprintf(fp,
+                "    {.magic = 0x%llxULL, .mask = 0x%llxULL, .shift = "
+                "%d},\n",
+                magic, bmask(square), BBits[square]);
+    }
+    fprintf(fp, "};\n");
+
+    fclose(fp);
+
+    puts("Magics successfully written to \"./src/lib/gen/magics.c\".");
+
+    return 0;
 }
