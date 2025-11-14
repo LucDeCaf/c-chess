@@ -1,25 +1,21 @@
-SOURCE_FILES = $(shell find src/lib -name "*.c")
-BINARY_FILES = $(shell find src/bin -name "*.c")
-OBJECT_TARGETS = $(patsubst src/lib/%.c,build/%.o,$(SOURCE_FILES))
+SOURCE_FILES = $(shell find src -maxdepth 1 -name "*.c")
+BINARY_FILES = $(shell find src/bin -maxdepth 1 -name "*.c")
+OBJECT_TARGETS = $(patsubst src/%.c,build/%.o,$(SOURCE_FILES))
 BINARY_TARGETS = $(patsubst src/bin/%.c,bin/%,$(BINARY_FILES))
 
 .PHONY: all bin clean
 
-build/%.o: src/lib/%.c
+build/%.o: src/%.c
 	mkdir -p $(dir $@)
 	gcc -Wall -Wextra -c $< -o $@
 
-bin/%: src/bin/%.c lib/libchess.a
+bin/%: src/bin/%.c $(OBJECT_TARGETS)
 	mkdir -p $(dir $@)
-	gcc -o $@ $< -Iinclude -Llib -lchess
-
-lib/libchess.a: $(OBJECT_TARGETS)
-	mkdir -p lib
-	ar rcs lib/libchess.a $(OBJECT_TARGETS)
+	gcc -o $@ $< $(OBJECT_TARGETS)
 
 bin: $(BINARY_TARGETS)
 
-all: lib/libchess.a bin
+all: bin
 	@echo $(BINARY_TARGETS)
 
 clean:

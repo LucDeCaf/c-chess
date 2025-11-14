@@ -1,5 +1,5 @@
-#include "../../../include/chess/internal/move.h"
-#include "../../../include/chess/internal/square.h"
+#include "move.h"
+#include "square.h"
 
 Move new_move(Square source, Square target, uint8_t flags) {
     return (source) | (target << 6) | (flags << 12);

@@ -1,4 +1,4 @@
-#include "../../../include/chess/internal/magic.h"
+#include "../magic.h"
 
 const MagicEntry ROOK_MAGICS[64] = {
     {.magic = 0xa8002c000108020ULL, .mask = 0x101010101017eULL, .shift = 12},
@@ -57,21 +57,13 @@ const MagicEntry ROOK_MAGICS[64] = {
     {.magic = 0x2000810040200ULL, .mask = 0x5e202020202000ULL, .shift = 10},
     {.magic = 0x8010100228810400ULL, .mask = 0x3e404040404000ULL, .shift = 10},
     {.magic = 0x2000009044210200ULL, .mask = 0x7e808080808000ULL, .shift = 11},
-    {.magic = 0x4080008040102101ULL,
-     .mask = 0x7e01010101010100ULL,
-     .shift = 12},
+    {.magic = 0x4080008040102101ULL, .mask = 0x7e01010101010100ULL, .shift = 12},
     {.magic = 0x40002080411d01ULL, .mask = 0x7c02020202020200ULL, .shift = 11},
-    {.magic = 0x2005524060000901ULL,
-     .mask = 0x7a04040404040400ULL,
-     .shift = 11},
+    {.magic = 0x2005524060000901ULL, .mask = 0x7a04040404040400ULL, .shift = 11},
     {.magic = 0x502001008400422ULL, .mask = 0x7608080808080800ULL, .shift = 11},
-    {.magic = 0x489a000810200402ULL,
-     .mask = 0x6e10101010101000ULL,
-     .shift = 11},
+    {.magic = 0x489a000810200402ULL, .mask = 0x6e10101010101000ULL, .shift = 11},
     {.magic = 0x1004400080a13ULL, .mask = 0x5e20202020202000ULL, .shift = 11},
-    {.magic = 0x4000011008020084ULL,
-     .mask = 0x3e40404040404000ULL,
-     .shift = 11},
+    {.magic = 0x4000011008020084ULL, .mask = 0x3e40404040404000ULL, .shift = 11},
     {.magic = 0x26002114058042ULL, .mask = 0x7e80808080808000ULL, .shift = 12},
 };
 

@@ -1,8 +1,8 @@
-#include "../../../include/chess/internal/board.h"
-#include "../../../include/chess/internal/color.h"
-#include "../../../include/chess/internal/move.h"
-#include "../../../include/chess/internal/piece.h"
-#include "../../../include/chess/internal/square.h"
+#include "board.h"
+#include "color.h"
+#include "move.h"
+#include "piece.h"
+#include "square.h"
 
 enum {
     BB_KNIGHT_BLACK = 0,

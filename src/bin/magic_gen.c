@@ -1,4 +1,3 @@
-#include <asm-generic/errno-base.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -198,7 +197,7 @@ int main() {
 
     int square;
 
-    fprintf(fp, "#include \"../../../include/chess/internal/magic.h\"\n\n");
+    fprintf(fp, "#include \"../magic.h\"\n\n");
 
     puts("Generating rook magics...");
     fprintf(fp, "const MagicEntry ROOK_MAGICS[64] = {\n");

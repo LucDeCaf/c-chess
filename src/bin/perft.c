@@ -1,4 +1,4 @@
-#include "../../include/chess/internal/board.h"
+#include "../board.h"
 #include <stdio.h>
 
 int main() {
