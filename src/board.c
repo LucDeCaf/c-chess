@@ -4,6 +4,7 @@
 #include "piece.h"
 #include "square.h"
 #include <stdint.h>
+#include <stdio.h>
 
 enum {
     BB_KNIGHT_BLACK = 0,
@@ -69,9 +70,7 @@ void board_make_move(Board *board, Move move) {
     Square source = move_source(move);
     Square target = move_target(move);
     uint8_t flags = move_flags(move);
-
     Color moved_color = board->current_turn;
-
     Piece moved_piece = board_piece_at(board, source);
     Piece captured_piece = board_piece_at(board, target);
 
@@ -104,7 +103,8 @@ Piece board_piece_at(Board *board, Square square) {
 
     for (int i = 0; i < 12; i++) {
         if (board->bitboards[i] & mask) {
-            return i >= 6 ? i - 6 : i;
+            Piece piece = i > 5 ? i - 6 : i;
+            return piece;
         }
     }
 

@@ -1,7 +1,7 @@
 #include "square.h"
 
 uint64_t square_mask(Square square) {
-    return 1 << square;
+    return 1ULL << square;
 }
 
 uint8_t square_rank(Square square) {

@@ -1,5 +1,6 @@
 #include "move_gen.h"
 #include "magic.h"
+#include "move.h"
 #include "piece.h"
 #include <stdint.h>
 
@@ -140,8 +141,7 @@ int generate_moves(Board *board, Move *moves) {
         ~blockers;
 
     // Add to moves
-    for (pawn_targets >>= 8, target = 8; pawn_targets;
-         pawn_targets >>= 1, target++) {
+    for (target = 0; pawn_targets; pawn_targets >>= 1, target++) {
         if (!(pawn_targets & 1))
             continue;
 
@@ -156,6 +156,29 @@ int generate_moves(Board *board, Move *moves) {
 
         Move move =
             new_move(target + (16 * color_direction(color)), target, 0b0001);
+        moves[moves_i++] = move;
+    }
+
+    // Pawn captures
+    // uint64_t left_captures = color == White ? pawns << 7 : pawns >> 7;
+    uint64_t left_captures =
+        (color ? pawns << 7 : pawns >> 9) & blockers & ~0x8080808080808080;
+    uint64_t right_captures =
+        (color ? pawns << 9 : pawns >> 7) & blockers & ~0x101010101010101;
+
+    // Add to moves
+    for (target = 0; left_captures; left_captures >>= 1, target++) {
+        if (!(left_captures & 1))
+            continue;
+
+        Move move = new_move(target - (9 - color * 2), target, 0b0100);
+        moves[moves_i++] = move;
+    }
+    for (target = 0; right_captures; right_captures >>= 1, target++) {
+        if (!(right_captures & 1))
+            continue;
+
+        Move move = new_move(target - (7 + color * 2), target, 0b0100);
         moves[moves_i++] = move;
     }
 

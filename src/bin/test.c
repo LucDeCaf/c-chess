@@ -1,12 +1,16 @@
 #include "../board.h"
 #include "../move_gen.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 void handle_print(Board *);
+void handle_dump(Board *);
 void handle_moves(Board *);
+void handle_move(Board *, char *);
 void move_to_string(Move, char[6]);
+Move move_from_string(char *);
 
 int main() {
     Board board;
@@ -37,8 +41,20 @@ int main() {
             handle_print(&board);
         }
 
+        else if (strncmp(buf, "dump", 4) == 0) {
+            handle_dump(&board);
+        }
+
         else if (strncmp(buf, "moves", 5) == 0) {
             handle_moves(&board);
+        }
+
+        else if (strncmp(buf, "move", 4) == 0) {
+            if (strlen(buf) < 5) {
+                printf("Expected move.");
+                continue;
+            }
+            handle_move(&board, buf + 5);
         }
 
         else if (strncmp(buf, "swapturn", 8) == 0) {
@@ -113,6 +129,46 @@ void handle_print(Board *board) {
     printf("  A B C D E F G H\n");
 }
 
+void dump_bb(const char *piece, uint64_t bb) {
+    printf("- %s:\n", piece);
+    for (int i = 7; i >= 0; i--) {
+        int pieces = bb >> (i * 8);
+        // clang-format off
+        printf("  %d %d %d %d %d %d %d %d\n",
+            (pieces >> 0) & 1,
+            (pieces >> 1) & 1,
+            (pieces >> 2) & 1,
+            (pieces >> 3) & 1,
+            (pieces >> 4) & 1,
+            (pieces >> 5) & 1,
+            (pieces >> 6) & 1,
+            (pieces >> 7) & 1
+        );
+        // clang-format on
+    }
+}
+
+void handle_dump(Board *board) {
+    printf("=== BOARD INFO ===\n");
+    printf("** Metadata\n");
+    printf("- Current turn: %s\n", board->current_turn ? "White" : "Black");
+    printf("- Halfmoves: %d\n", board->halfmoves);
+    printf("- Fullmoves: %d\n", board->fullmoves);
+    printf("** Bitboards\n");
+    dump_bb("Black Knights", board->bitboards[0]);
+    dump_bb("Black Bishops", board->bitboards[1]);
+    dump_bb("Black Rooks", board->bitboards[2]);
+    dump_bb("Black Queens", board->bitboards[3]);
+    dump_bb("Black King", board->bitboards[4]);
+    dump_bb("Black Pawns", board->bitboards[5]);
+    dump_bb("White Knights", board->bitboards[6]);
+    dump_bb("White Bishops", board->bitboards[7]);
+    dump_bb("White Rooks", board->bitboards[8]);
+    dump_bb("White Queens", board->bitboards[9]);
+    dump_bb("White King", board->bitboards[10]);
+    dump_bb("White Pawns", board->bitboards[11]);
+}
+
 void handle_moves(Board *board) {
     Move moves[256];
     int movecount = generate_moves(board, moves);
@@ -122,6 +178,50 @@ void handle_moves(Board *board) {
         move_to_string(moves[i], buf);
         printf("%s\n", buf);
     }
+    printf("Total moves: %d\n", movecount);
+}
+
+void handle_move(Board *board, char *buf) {
+    Move move = move_from_string(buf);
+    char temp_buf[6];
+    temp_buf[5] = '\0';
+    move_to_string(move, temp_buf);
+    board_make_move(board, move);
+}
+
+Move move_from_string(char *buf) {
+    int len = strlen(buf);
+    if (len != 4 && len != 5)
+        return 0;
+
+    Square source = (buf[0] - 'a') + (buf[1] - '1') * 8;
+    if (source < 0 || source > 63)
+        return 0;
+
+    Square target = (buf[2] - 'a') + (buf[3] - '1') * 8;
+    if (target < 0 || target > 63)
+        return 0;
+
+    Piece promotion = PieceNone;
+    if (len == 5) {
+        switch (buf[4]) {
+        case 'n':
+            promotion = PieceKnight;
+            break;
+        case 'b':
+            promotion = PieceBishop;
+            break;
+        case 'r':
+            promotion = PieceRook;
+            break;
+        case 'q':
+            promotion = PieceQueen;
+            break;
+        }
+    }
+
+    uint16_t flags = (promotion == PieceNone) ? 0b0000 : (0b1000 | promotion);
+    return new_move(source, target, flags);
 }
 
 void move_to_string(Move move, char out[6]) {
