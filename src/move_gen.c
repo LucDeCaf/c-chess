@@ -132,14 +132,14 @@ int generate_moves(Board *board, Move *moves) {
 
     // Pawns
     // Forward moves
-    uint64_t pawn_home_single_move_rank = 0x0000000000ff0000 << color * 24;
-    uint64_t pawn_home_double_move_rank = 0x00000000ff000000 << color * 8;
+    uint64_t pawn_home_single_move_rank = 0x0000ff0000000000 >> color * 24;
 
     uint64_t pawn_targets = rrot(pawns, 8 + color * 48) & ~blockers;
     uint64_t pawn_double_targets =
         rrot(pawn_targets & pawn_home_single_move_rank, 8 + color * 48) &
         ~blockers;
 
+    // Add to moves
     for (pawn_targets >>= 8, target = 8; pawn_targets;
          pawn_targets >>= 1, target++) {
         if (!(pawn_targets & 1))
@@ -149,8 +149,17 @@ int generate_moves(Board *board, Move *moves) {
             new_move(target + (8 * color_direction(color)), target, 0b0000);
         moves[moves_i++] = move;
     }
+    for (pawn_double_targets >>= 16, target = 16; pawn_double_targets;
+         pawn_double_targets >>= 1, target++) {
+        if (!(pawn_double_targets & 1))
+            continue;
 
-    // TODO pawn double moves, pawn captures, ep
+        Move move =
+            new_move(target + (16 * color_direction(color)), target, 0b0001);
+        moves[moves_i++] = move;
+    }
+
+    // TODO pawn captures, ep
 
     // TODO remaining pieces
 
