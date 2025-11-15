@@ -3,6 +3,7 @@
 #include "move.h"
 #include "piece.h"
 #include "square.h"
+#include <stdint.h>
 
 enum {
     BB_KNIGHT_BLACK = 0,
@@ -49,8 +50,19 @@ void board_init(Board *board) {
     board->fullmoves = 1;
 }
 
-uint64_t *board_bitboard(Board *board, Piece piece, Color color) {
-    return &board->bitboards[piece + 6 * color];
+uint64_t board_bitboard(Board *board, Piece piece, Color color) {
+    return board->bitboards[piece + (color * 6)];
+}
+
+uint64_t *board_bitboard_p(Board *board, Piece piece, Color color) {
+    return &board->bitboards[piece + (color * 6)];
+}
+
+uint64_t board_blockers(Board *board, Color attacking_color) {
+    int m = attacking_color * 6;
+    return board->bitboards[m] | board->bitboards[m + 1] |
+           board->bitboards[m + 2] | board->bitboards[m + 3] |
+           board->bitboards[m + 4] | board->bitboards[m + 5];
 }
 
 void board_make_move(Board *board, Move move) {
@@ -64,13 +76,13 @@ void board_make_move(Board *board, Move move) {
     Piece captured_piece = board_piece_at(board, target);
 
     // Move moved piece
-    uint64_t *moved_bb = board_bitboard(board, moved_piece, moved_color);
+    uint64_t *moved_bb = board_bitboard_p(board, moved_piece, moved_color);
     *moved_bb ^= square_mask(source) | square_mask(target);
 
     // If capture, remove captured piece
     if (captured_piece != PieceNone) {
         uint64_t *captured_bb =
-            board_bitboard(board, captured_piece, color_inverse(moved_color));
+            board_bitboard_p(board, captured_piece, color_inverse(moved_color));
         *captured_bb ^= square_mask(target);
     }
 

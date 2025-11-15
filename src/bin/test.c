@@ -1,14 +1,17 @@
 #include "../board.h"
+#include "../move_gen.h"
 
 #include <stdio.h>
 #include <string.h>
 
 void handle_print(Board *);
-void handle_move(Board *, const char *);
+void handle_moves(Board *);
+void move_to_string(Move, char[6]);
 
 int main() {
     Board board;
     board_init(&board);
+    init_move_generation();
 
     char buf[200];
     while (1) {
@@ -26,22 +29,25 @@ int main() {
             break;
         }
 
-        if (strncmp(buf, "clear", 4) == 0) {
+        else if (strncmp(buf, "clear", 4) == 0) {
             printf("\e[1;1H\e[2J");
-            continue;
         }
 
-        if (strncmp(buf, "print", 5) == 0) {
+        else if (strncmp(buf, "print", 5) == 0) {
             handle_print(&board);
-            continue;
         }
 
-        if (strncmp(buf, "move", 4) == 0) {
-            handle_move(&board, buf);
-            continue;
+        else if (strncmp(buf, "moves", 5) == 0) {
+            handle_moves(&board);
         }
 
-        printf("Invalid command: '%s'\n", buf);
+        else if (strncmp(buf, "swapturn", 8) == 0) {
+            board.current_turn = color_inverse(board.current_turn);
+        }
+
+        else {
+            printf("Invalid command: '%s'\n", buf);
+        }
     }
 
     printf("End of input\n");
@@ -107,7 +113,32 @@ void handle_print(Board *board) {
     printf("  A B C D E F G H\n");
 }
 
-void handle_move(Board *board, const char *buf) {
-    printf("TODO: Get move list, if can't find move in move list then get "
-           "move flags from user\n");
+void handle_moves(Board *board) {
+    Move moves[256];
+    int movecount = generate_moves(board, moves);
+    printf("Moves:\n");
+    char buf[6];
+    for (int i = 0; i < movecount; i++) {
+        move_to_string(moves[i], buf);
+        printf("%s\n", buf);
+    }
+}
+
+void move_to_string(Move move, char out[6]) {
+    // Check promotion bit
+    char promotion_chars[4] = "nbrq";
+    Square s = move_source(move), t = move_target(move);
+    int f = move_flags(move);
+    int sr, sf, tr, tf;
+    sr = square_rank(s);
+    sf = square_file(s);
+    tr = square_rank(t);
+    tf = square_file(t);
+    int is_prom = f >> 3;
+    out[0] = 'a' + sf;
+    out[1] = '1' + sr;
+    out[2] = 'a' + tf;
+    out[3] = '1' + tr;
+    out[4] = (promotion_chars[f & MOVE_SPECIAL] * is_prom);
+    out[5] = 0;
 }

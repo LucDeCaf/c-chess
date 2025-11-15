@@ -177,19 +177,19 @@ int dir_exists(const char *path) {
 }
 
 int main() {
-    if (!dir_exists("src/lib")) {
-        printf("Failed to find src/lib in pwd\n");
+    if (!dir_exists("src")) {
+        printf("Failed to find src in pwd\n");
         exit(1);
     }
 
-    if (!dir_exists("src/lib/gen")) {
-        if (mkdir("src/lib/gen", 0777) == -1) {
-            printf("Failed to make directory src/lib/gen\n");
+    if (!dir_exists("src/gen")) {
+        if (mkdir("src/gen", 0777) == -1) {
+            printf("Failed to make directory src/gen\n");
             exit(1);
         }
     }
 
-    FILE *fp = fopen("src/lib/gen/magics.c", "w");
+    FILE *fp = fopen("src/gen/magics.c", "w");
     if (fp == NULL) {
         printf("Failed to open file\n");
         exit(1);
@@ -207,7 +207,7 @@ int main() {
         fprintf(fp,
                 "    {.magic = 0x%llxULL, .mask = 0x%llxULL, .shift = "
                 "%d},\n",
-                magic, rmask(square), RBits[square]);
+                magic, rmask(square), 64 - RBits[square]);
     }
     fprintf(fp, "};\n\n");
 
@@ -219,13 +219,13 @@ int main() {
         fprintf(fp,
                 "    {.magic = 0x%llxULL, .mask = 0x%llxULL, .shift = "
                 "%d},\n",
-                magic, bmask(square), BBits[square]);
+                magic, bmask(square), 64 - BBits[square]);
     }
     fprintf(fp, "};\n");
 
     fclose(fp);
 
-    puts("Magics successfully written to \"./src/lib/gen/magics.c\".");
+    puts("Magics successfully written to \"./src/gen/magics.c\".");
 
     return 0;
 }

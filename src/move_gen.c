@@ -1,5 +1,6 @@
 #include "move_gen.h"
 #include "magic.h"
+#include "piece.h"
 #include <stdint.h>
 
 const uint64_t KNIGHT_TARGETS[64] = {
@@ -85,7 +86,73 @@ uint64_t knight_moves(Square square, uint64_t blockers) {
     return KNIGHT_TARGETS[square] & (~blockers);
 }
 
+// Using compiler builtins (eg. __builtin_ctzll) is faster than generic case
+// but I want this to be mostly compiler agnostic (I use GCC on one machine
+// and Clang on another).
+int ctz_ll(uint64_t x) {
+#if defined(__GNUC__) || defined(__clang__)
+    return x == 0 ? 64 : __builtin_ctzll(x);
+#elif defined(_MSC_VER)
+    uint64_t i;
+    if (_BitScanForward64(&i, x))
+        return i;
+    return 64;
+#else
+    if (x == 0)
+        return 64;
+    static const int lookup[64] = {
+        0,  1,  2,  7,  3,  13, 8,  19, 4,  25, 14, 28, 9,  34, 20, 40,
+        5,  17, 26, 38, 15, 31, 29, 45, 10, 21, 35, 47, 41, 54, 48, 63,
+        6,  11, 18, 23, 27, 33, 39, 44, 16, 22, 32, 37, 30, 43, 46, 53,
+        50, 49, 57, 56, 55, 62, 52, 61, 42, 51, 58, 59, 60, 24, 36, 60};
+    return lookup[((uint64_t)((x & -x) * 0x0218A392CD3D5E45ULL)) >> 58];
+#endif
+}
+
+static inline uint64_t rrot(uint64_t n, int d) {
+    return (n >> d) | (n << (64 - d));
+}
+
+// NB: Caller needs to guarantee there is enough space in 'moves'
+//     Normally, 218 should be enough (max moves in 1 pos), but
+//     for variants this may change (unsure if I will add variant
+//     support).
 int generate_moves(Board *board, Move *moves) {
-    // TODO
-    return 0;
+    int moves_i = 0;
+    Square source, target;
+
+    Color color = board->current_turn;
+    uint64_t pawns = board_bitboard(board, PiecePawn, color);
+    uint64_t knights = board_bitboard(board, PieceKnight, color);
+    uint64_t bishops = board_bitboard(board, PieceBishop, color);
+    uint64_t rooks = board_bitboard(board, PieceRook, color);
+    uint64_t queens = board_bitboard(board, PieceQueen, color);
+    Square king = ctz_ll(board_bitboard(board, PieceKing, color));
+    uint64_t blockers = board_blockers(board, color);
+
+    // Pawns
+    // Forward moves
+    uint64_t pawn_home_single_move_rank = 0x0000000000ff0000 << color * 24;
+    uint64_t pawn_home_double_move_rank = 0x00000000ff000000 << color * 8;
+
+    uint64_t pawn_targets = rrot(pawns, 8 + color * 48) & ~blockers;
+    uint64_t pawn_double_targets =
+        rrot(pawn_targets & pawn_home_single_move_rank, 8 + color * 48) &
+        ~blockers;
+
+    for (pawn_targets >>= 8, target = 8; pawn_targets;
+         pawn_targets >>= 1, target++) {
+        if (!(pawn_targets & 1))
+            continue;
+
+        Move move =
+            new_move(target + (8 * color_direction(color)), target, 0b0000);
+        moves[moves_i++] = move;
+    }
+
+    // TODO pawn double moves, pawn captures, ep
+
+    // TODO remaining pieces
+
+    return moves_i;
 }

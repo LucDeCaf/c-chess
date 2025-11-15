@@ -4,6 +4,7 @@ OBJECT_TARGETS = $(patsubst src/%.c,build/%.o,$(SOURCE_FILES))
 BINARY_TARGETS = $(patsubst src/bin/%.c,bin/%,$(BINARY_FILES))
 
 .PHONY: all bin clean
+.SECONDARY: $(OBJECT_TARGETS)
 
 build/%.o: src/%.c
 	mkdir -p $(dir $@)
@@ -15,10 +16,10 @@ bin/%: src/bin/%.c $(OBJECT_TARGETS)
 
 bin: $(BINARY_TARGETS)
 
-all: bin
-	@echo $(BINARY_TARGETS)
-
 clean:
 	rm -rf build
 	rm -rf lib
 	rm -rf bin
+
+all: bin
+
