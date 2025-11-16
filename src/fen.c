@@ -11,12 +11,13 @@ const char PIECE_CHARS[12] = "nbrqkpNBRQKP";
 int load_fen(Board *board, char *fen) {
     int len = strlen(fen);
     int rank = 7, file = 0;
+    int i;
 
-    for (int i = 0; i < 12; i++) {
+    for (i = 0; i < 12; i++) {
         board->bitboards[i] = 0;
     }
 
-    for (int i = 0; i < len; i++) {
+    for (i = 0; i < len; i++) {
         int square = rank * 8 + file;
         if (square < 0 || square > 63) {
             return -1;
@@ -29,39 +30,51 @@ int load_fen(Board *board, char *fen) {
         switch (fen[i]) {
         case 'n':
             *board_bitboard_p(board, PieceKnight, Black) |= 1ULL << square;
+            file++;
             break;
         case 'b':
             *board_bitboard_p(board, PieceBishop, Black) |= 1ULL << square;
+            file++;
             break;
         case 'r':
             *board_bitboard_p(board, PieceRook, Black) |= 1ULL << square;
+            file++;
             break;
         case 'q':
             *board_bitboard_p(board, PieceQueen, Black) |= 1ULL << square;
+            file++;
             break;
         case 'k':
             *board_bitboard_p(board, PieceKing, Black) |= 1ULL << square;
+            file++;
             break;
         case 'p':
             *board_bitboard_p(board, PiecePawn, Black) |= 1ULL << square;
+            file++;
             break;
         case 'N':
             *board_bitboard_p(board, PieceKnight, White) |= 1ULL << square;
+            file++;
             break;
         case 'B':
             *board_bitboard_p(board, PieceBishop, White) |= 1ULL << square;
+            file++;
             break;
         case 'R':
             *board_bitboard_p(board, PieceRook, White) |= 1ULL << square;
+            file++;
             break;
         case 'Q':
             *board_bitboard_p(board, PieceQueen, White) |= 1ULL << square;
+            file++;
             break;
         case 'K':
             *board_bitboard_p(board, PieceKing, White) |= 1ULL << square;
+            file++;
             break;
         case 'P':
             *board_bitboard_p(board, PiecePawn, White) |= 1ULL << square;
+            file++;
             break;
         case '1':
         case '2':
@@ -75,13 +88,11 @@ int load_fen(Board *board, char *fen) {
             file += skip;
             break;
         case '/':
-            file--;
             break;
         default:
             return -1;
         }
 
-        file++;
         if (file > 7) {
             file = 0;
             rank--;
@@ -90,6 +101,10 @@ int load_fen(Board *board, char *fen) {
         if (rank < 0)
             break;
     }
+
+    // Current turn
+    printf("cur_char: %c\n", fen[i]);
+    printf("cur_char + 1: %c\n", fen[i + 1]);
 
     return 0;
 }
