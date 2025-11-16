@@ -182,7 +182,7 @@ int generate_moves(Board *board, Move *moves) {
         moves[moves_i++] = move;
     }
 
-    // TODO pawn captures, ep
+    // TODO en passant
 
     // TODO remaining pieces
 

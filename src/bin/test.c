@@ -1,8 +1,10 @@
 #include "../board.h"
+#include "../fen.h"
 #include "../move_gen.h"
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void handle_print(Board *);
@@ -47,6 +49,27 @@ int main() {
 
         else if (strncmp(buf, "moves", 5) == 0) {
             handle_moves(&board);
+        }
+
+        else if (strncmp(buf, "fen", 3) == 0) {
+            char *fen = to_fen(&board);
+            printf("%s\n", fen);
+            free(fen);
+        }
+
+        else if (strncmp(buf, "load", 4) == 0) {
+            if (buf[4] != ' ' || buf[5] == '\0') {
+                printf("Expected FEN string.\n");
+                continue;
+            }
+            char *fen = buf + 5;
+            load_fen(&board, fen);
+        }
+
+        else if (strncmp(buf, "empty", 5) == 0) {
+            for (int i = 0; i < 12; i++) {
+                board.bitboards[i] = 0;
+            }
         }
 
         else if (strncmp(buf, "move", 4) == 0) {
