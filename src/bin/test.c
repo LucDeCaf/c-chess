@@ -35,8 +35,13 @@ int main() {
             break;
         }
 
-        else if (strncmp(buf, "clear", 4) == 0) {
+        else if (strncmp(buf, "clear", 5) == 0) {
             printf("\e[1;1H\e[2J");
+        }
+
+        else if (strncmp(buf, "reset", 5) == 0) {
+            board_init(&board);
+            printf("Reset board to starting position.\n");
         }
 
         else if (strncmp(buf, "print", 5) == 0) {
@@ -63,7 +68,10 @@ int main() {
                 continue;
             }
             char *fen = buf + 5;
-            load_fen(&board, fen);
+            int error = load_fen(&board, fen);
+            if (error) {
+                printf("Error loading FEN: Error code %d\n", error);
+            }
         }
 
         else if (strncmp(buf, "empty", 5) == 0) {
