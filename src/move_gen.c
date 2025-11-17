@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
+// Copied from old project, hence why not in 0x notation
 const uint64_t KNIGHT_TARGETS[64] = {
     132096ULL,
     329728ULL,
@@ -73,7 +74,10 @@ const uint64_t KNIGHT_TARGETS[64] = {
 };
 
 int magic_index(const MagicEntry *entry, uint64_t blockers) {
-    return ((blockers & entry->mask) * entry->magic) >> entry->shift;
+    blockers &= entry->mask;
+    blockers *= entry->magic;
+    blockers >>= entry->shift;
+    return blockers;
 }
 
 uint64_t magic_rook_moves(int square, uint64_t blockers) {
