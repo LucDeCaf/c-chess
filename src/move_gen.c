@@ -291,23 +291,25 @@ int generate_moves(Board *board, Move *moves) {
     // Pawn captures
     // uint64_t left_captures = color == White ? pawns << 7 : pawns >> 7;
     uint64_t left_captures =
-        (color ? pawns << 7 : pawns >> 9) & blockers & ~0x8080808080808080;
+        (color ? pawns << 7 : pawns >> 9) & enemies & ~0x0101010101010101;
     uint64_t right_captures =
-        (color ? pawns << 9 : pawns >> 7) & blockers & ~0x101010101010101;
+        (color ? pawns << 9 : pawns >> 7) & enemies & ~0x8080808080808080;
 
     // Add to moves
     for (target = 0; left_captures; left_captures >>= 1, target++) {
         if (!(left_captures & 1))
             continue;
 
-        Move move = new_move(target - (9 - color * 2), target, MOVE_CAPTURE);
+        source = color ? target - 7 : target + 9;
+        Move move = new_move(source, target, MOVE_CAPTURE);
         moves[moves_i++] = move;
     }
     for (target = 0; right_captures; right_captures >>= 1, target++) {
         if (!(right_captures & 1))
             continue;
 
-        Move move = new_move(target - (7 + color * 2), target, MOVE_CAPTURE);
+        source = color ? target - 9 : target + 7;
+        Move move = new_move(source, target, MOVE_CAPTURE);
         moves[moves_i++] = move;
     }
 
