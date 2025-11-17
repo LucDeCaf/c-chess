@@ -11,13 +11,14 @@ void handle_print(Board *);
 void handle_dump(Board *);
 void handle_moves(Board *);
 void handle_move(Board *, char *);
+void handle_set(Board *, char *);
 void move_to_string(Move, char[6]);
 Move move_from_string(char *);
 
 int main() {
     Board board;
     board_init(&board);
-    init_move_generation();
+    move_gen_init();
 
     char buf[200];
     while (1) {
@@ -82,10 +83,14 @@ int main() {
 
         else if (strncmp(buf, "move", 4) == 0) {
             if (strlen(buf) < 5) {
-                printf("Expected move.");
+                printf("Expected move.\n");
                 continue;
             }
             handle_move(&board, buf + 5);
+        }
+
+        else if (strncmp(buf, "set", 3) == 0) {
+            handle_set(&board, buf);
         }
 
         else if (strncmp(buf, "swapturn", 8) == 0) {
@@ -218,6 +223,35 @@ void handle_move(Board *board, char *buf) {
     temp_buf[5] = '\0';
     move_to_string(move, temp_buf);
     board_make_move(board, move);
+}
+
+void handle_set(Board *board, char *buf) {
+    char chars[2];
+    int square, piece, color;
+    if (sscanf(buf, "set %c%c %d %d", &chars[0], &chars[1], &piece, &color) !=
+        4) {
+        printf("Expected 'set <square> <piece> <color>'.\n");
+        return;
+    }
+
+    square = (buf[4] - 'a') + (buf[5] - '1') * 8;
+    if (square < 0 || square > 63) {
+        printf("Invalid square (%d)\n", square);
+        return;
+    }
+
+    printf("square: %d\npiece: %d\ncolor: %d\n", square, piece, color);
+
+    for (int piece_i = 0; piece_i < 6; piece_i++) {
+        for (int color_i = 0; color_i < 2; color_i++) {
+            uint64_t *bb_p = board_bitboard_p(board, piece_i, color_i);
+
+            if (piece_i == piece && color_i == color)
+                *bb_p |= 1ULL << square;
+            else
+                *bb_p &= ~(1ULL << square);
+        }
+    }
 }
 
 Move move_from_string(char *buf) {

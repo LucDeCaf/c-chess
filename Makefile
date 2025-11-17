@@ -1,4 +1,4 @@
-SOURCE_FILES = $(shell find src -maxdepth 1 -name "*.c")
+SOURCE_FILES = $(shell find src src/gen -maxdepth 1 -name "*.c")
 BINARY_FILES = $(shell find src/bin -maxdepth 1 -name "*.c")
 OBJECT_TARGETS = $(patsubst src/%.c,build/%.o,$(SOURCE_FILES))
 BINARY_TARGETS = $(patsubst src/bin/%.c,bin/%,$(BINARY_FILES))

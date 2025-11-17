@@ -1,12 +1,10 @@
 #include "magic.h"
-#include "gen/magics.c"
+#include "gen/magics.h"
 #include "square.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
-
-uint64_t ROOK_MOVES[64][4096];
-uint64_t BISHOP_MOVES[64][512];
 
 int magic_index(const MagicEntry *entry, uint64_t blockers) {
     return ((blockers & entry->mask) * entry->magic) >> entry->shift;
@@ -14,87 +12,126 @@ int magic_index(const MagicEntry *entry, uint64_t blockers) {
 
 uint64_t magic_rook_moves(Square square, uint64_t blockers) {
     MagicEntry magic = ROOK_MAGICS[square];
-    uint64_t *moves = ROOK_MOVES[square];
+    uint64_t *moves = magic.att;
     return moves[magic_index(&magic, blockers)];
 }
 
 uint64_t magic_bishop_moves(Square square, uint64_t blockers) {
     MagicEntry magic = BISHOP_MAGICS[square];
-    uint64_t *moves = BISHOP_MOVES[square];
+    uint64_t *moves = magic.att;
     return moves[magic_index(&magic, blockers)];
 }
 
-uint64_t rook_attacks(Square square, uint64_t blockers) {
+uint64_t rook_moves(int square, uint64_t blockers) {
     uint64_t result = 0ULL;
-    int rk = square / 8, fl = square % 8, r, f;
-    for (r = rk + 1; r <= 7; r++) {
-        result |= (1ULL << (fl + r * 8));
-        if (blockers & (1ULL << (fl + r * 8)))
+    int r, f;
+    int rank = square / 8;
+    int file = square % 8;
+
+    for (r = rank + 1; r < 8; r++) {
+        result |= 1ULL << (r * 8 + file);
+        if (blockers & (1ULL << (r * 8 + file)))
             break;
     }
-    for (r = rk - 1; r >= 0; r--) {
-        result |= (1ULL << (fl + r * 8));
-        if (blockers & (1ULL << (fl + r * 8)))
+    for (r = rank - 1; r >= 0; r--) {
+        result |= 1ULL << (r * 8 + file);
+        if (blockers & (1ULL << (r * 8 + file)))
             break;
     }
-    for (f = fl + 1; f <= 7; f++) {
-        result |= (1ULL << (f + rk * 8));
-        if (blockers & (1ULL << (f + rk * 8)))
+    for (f = file + 1; f < 8; f++) {
+        result |= 1ULL << (rank * 8 + f);
+        if (blockers & (1ULL << (rank * 8 + f)))
             break;
     }
-    for (f = fl - 1; f >= 0; f--) {
-        result |= (1ULL << (f + rk * 8));
-        if (blockers & (1ULL << (f + rk * 8)))
+    for (f = file - 1; f >= 0; f--) {
+        result |= 1ULL << (rank * 8 + f);
+        if (blockers & (1ULL << (rank * 8 + f)))
             break;
     }
+
     return result;
 }
 
-uint64_t bishop_attacks(Square square, uint64_t blockers) {
+uint64_t bishop_moves(int square, uint64_t blockers) {
     uint64_t result = 0ULL;
-    int rk = square / 8, fl = square % 8, r, f;
-    for (r = rk + 1, f = fl + 1; r <= 7 && f <= 7; r++, f++) {
-        result |= (1ULL << (f + r * 8));
-        if (blockers & (1ULL << (f + r * 8)))
+    int r, f;
+    int rank = square / 8;
+    int file = square % 8;
+
+    for (r = rank + 1, f = file + 1; r < 8 && f < 8; r++, f++) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
             break;
     }
-    for (r = rk + 1, f = fl - 1; r <= 7 && f >= 0; r++, f--) {
-        result |= (1ULL << (f + r * 8));
-        if (blockers & (1ULL << (f + r * 8)))
+    for (r = rank - 1, f = file + 1; r >= 0 && f < 8; r--, f++) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
             break;
     }
-    for (r = rk - 1, f = fl + 1; r >= 0 && f <= 7; r--, f++) {
-        result |= (1ULL << (f + r * 8));
-        if (blockers & (1ULL << (f + r * 8)))
+    for (r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
             break;
     }
-    for (r = rk - 1, f = fl - 1; r >= 0 && f >= 0; r--, f--) {
-        result |= (1ULL << (f + r * 8));
-        if (blockers & (1ULL << (f + r * 8)))
+    for (r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
             break;
     }
+
     return result;
 }
 
-void fill_table(uint64_t (*piece_tables)[64], const MagicEntry magics[64],
-                uint64_t (*get_moves)(Square, uint64_t)) {
-    for (Square square = 0; square < 64; square++) {
-        const MagicEntry *entry = &magics[square];
-        uint64_t mask = entry->mask;
-        uint64_t *table = piece_tables[square];
+int fill_table(int square, MagicEntry *magic, int bishop) {
+    int table_len = 1 << (64 - magic->shift);
+    uint64_t *table = malloc(sizeof(uint64_t) * table_len);
+    if (table == NULL)
+        return -1;
 
-        uint64_t blockers = 0;
-        do {
-            uint64_t moves = get_moves(square, blockers);
-            int i = magic_index(entry, blockers);
-            table[i] = moves;
-
-            blockers = (blockers - mask) & mask;
-        } while (blockers);
+    for (int i = 0; i < table_len; i++) {
+        table[i] = 0ULL;
     }
+
+    int i;
+    uint64_t moves;
+    uint64_t mask = magic->mask;
+    uint64_t blockers = 0ULL;
+    do {
+        moves = bishop ? bishop_moves(square, blockers)
+                       : rook_moves(square, blockers);
+        i = magic_index(magic, blockers);
+        table[i] = moves;
+
+        blockers = (blockers - mask) & mask;
+    } while (blockers);
+
+    magic->att = table;
+
+    return 0;
 }
 
-void magic_init() {
-    fill_table(ROOK_MOVES, ROOK_MAGICS, rook_attacks);
-    fill_table(BISHOP_MOVES, BISHOP_MAGICS, bishop_attacks);
+int magic_init(void) {
+    int i, error;
+    for (i = 0; i < 64; i++) {
+        error = fill_table(i, &ROOK_MAGICS[i], 0);
+        if (error)
+            return error;
+        error = fill_table(i, &BISHOP_MAGICS[i], 1);
+        if (error)
+            return error;
+    }
+    return 0;
+}
+
+void magic_cleanup(void) {
+    for (int i = 0; i < 64; i++) {
+        if (ROOK_MAGICS[i].att != NULL) {
+            free(ROOK_MAGICS[i].att);
+            ROOK_MAGICS[i].att = NULL;
+        }
+        if (BISHOP_MAGICS[i].att != NULL) {
+            free(BISHOP_MAGICS[i].att);
+            BISHOP_MAGICS[i].att = NULL;
+        }
+    }
 }

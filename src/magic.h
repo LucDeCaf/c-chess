@@ -5,13 +5,14 @@
 #include <stdint.h>
 
 typedef struct {
+    uint64_t *att;
     uint64_t mask;
     uint64_t magic;
-    int shift;
-    int offset;
+    uint8_t shift;
 } MagicEntry;
 
-void magic_init();
+int magic_init(void);
+void magic_cleanup(void);
 uint64_t magic_rook_moves(Square square, uint64_t blockers);
 uint64_t magic_bishop_moves(Square square, uint64_t blockers);
 

@@ -59,11 +59,12 @@ uint64_t *board_bitboard_p(Board *board, Piece piece, Color color) {
     return &board->bitboards[piece + (color * 6)];
 }
 
-uint64_t board_blockers(Board *board, Color attacking_color) {
-    int m = attacking_color * 6;
-    return board->bitboards[m] | board->bitboards[m + 1] |
-           board->bitboards[m + 2] | board->bitboards[m + 3] |
-           board->bitboards[m + 4] | board->bitboards[m + 5];
+uint64_t board_pieces(Board *board, Color color) {
+    int m = color * 6;
+    uint64_t result = 0ULL;
+    for (int i = m; i < m + 6; i++)
+        result |= board->bitboards[i];
+    return result;
 }
 
 void board_make_move(Board *board, Move move) {

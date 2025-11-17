@@ -3,6 +3,7 @@
 #include "move.h"
 #include "piece.h"
 #include <stdint.h>
+#include <stdio.h>
 
 const uint64_t KNIGHT_TARGETS[64] = {
     132096ULL,
@@ -71,20 +72,12 @@ const uint64_t KNIGHT_TARGETS[64] = {
     9077567998918656ULL,
 };
 
-void init_move_generation() {
-    magic_init();
+int move_gen_init() {
+    return magic_init();
 }
 
-uint64_t rook_moves(Square square, uint64_t blockers) {
-    return magic_rook_moves(square, blockers);
-}
-
-uint64_t bishop_moves(Square square, uint64_t blockers) {
-    return magic_bishop_moves(square, blockers);
-}
-
-uint64_t knight_moves(Square square, uint64_t blockers) {
-    return KNIGHT_TARGETS[square] & (~blockers);
+void move_gen_cleanup() {
+    magic_cleanup();
 }
 
 // Using compiler builtins (eg. __builtin_ctzll) is faster than generic case
@@ -129,7 +122,9 @@ int generate_moves(Board *board, Move *moves) {
     uint64_t rooks = board_bitboard(board, PieceRook, color);
     uint64_t queens = board_bitboard(board, PieceQueen, color);
     Square king = ctz_ll(board_bitboard(board, PieceKing, color));
-    uint64_t blockers = board_blockers(board, color);
+    uint64_t friends = board_pieces(board, color);
+    uint64_t enemies = board_pieces(board, color_inverse(color));
+    uint64_t blockers = friends | enemies;
 
     // Pawns
     // Forward moves
@@ -183,6 +178,23 @@ int generate_moves(Board *board, Move *moves) {
     }
 
     // TODO en passant
+
+    // Bishops
+    for (source = 0; bishops; bishops >>= 1, source++) {
+        if (!(bishops & 1ULL))
+            continue;
+
+        uint64_t targets = magic_bishop_moves(source, blockers) & ~friends;
+        for (target = 0; targets; targets >>= 1, target++) {
+            if (!(targets & 1ULL))
+                continue;
+
+            uint64_t mask = 1ULL << target;
+            uint8_t flags = (mask & enemies) ? 0b0100 : 0b0000;
+            Move move = new_move(source, target, flags);
+            moves[moves_i++] = move;
+        }
+    }
 
     // TODO remaining pieces
 
