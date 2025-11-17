@@ -291,9 +291,9 @@ int generate_moves(Board *board, Move *moves) {
     // Pawn captures
     // uint64_t left_captures = color == White ? pawns << 7 : pawns >> 7;
     uint64_t left_captures =
-        (color ? pawns << 7 : pawns >> 9) & enemies & ~0x0101010101010101;
+        (color ? pawns << 7 : pawns >> 9) & enemies & ~0x8080808080808080;
     uint64_t right_captures =
-        (color ? pawns << 9 : pawns >> 7) & enemies & ~0x8080808080808080;
+        (color ? pawns << 9 : pawns >> 7) & enemies & ~0x0101010101010101;
 
     // Add to moves
     for (target = 0; left_captures; left_captures >>= 1, target++) {
