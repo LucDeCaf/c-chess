@@ -1,9 +1,16 @@
-#include "../magic.h"
 #include "../pcg_basic.h"
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+typedef struct {
+    uint64_t *att;
+    uint64_t magic;
+    uint64_t mask;
+    uint8_t shift;
+} MagicEntry;
 
 pcg32_random_t rng;
 
@@ -208,22 +215,32 @@ const int BISHOP_INDEX_BITS[64] = {
 
 void write_magic(FILE *restrict fp, MagicEntry *magics[64],
                  const char *array_name) {
-    fprintf(fp, "\n\nstatic MagicEntry %s[64] = {\n", array_name);
+    fprintf(fp, "static MagicEntry %s[64] = {\n", array_name);
     for (int i = 0; i < 64; i++) {
         fprintf(fp,
-                "    { .att = 0, .mask = 0x%" PRIx64 ", .magic = 0x%" PRIx64 ", .shift = "
+                "    { .att = 0, .mask = 0x%" PRIx64 ", .magic = 0x%" PRIx64
+                ", .shift = "
                 "%d },\n",
                 magics[i]->mask, magics[i]->magic, magics[i]->shift);
     }
-    fprintf(fp, "};");
+    fprintf(fp, "};\n");
 }
 
 void write_magics(FILE *restrict fp, MagicEntry *rook_magics[64],
                   MagicEntry *bishop_magics[64]) {
-    fprintf(fp, "// clang-format off\n#include \"../magic.h\"");
+    fprintf(fp, "#ifndef MAGICS_H\n"
+                "#define MAGICS_H\n\n"
+                "#include <inttypes.h>\n\n"
+                "typedef struct {\n"
+                "    uint64_t *att;\n"
+                "    uint64_t mask;\n"
+                "    uint64_t magic;\n"
+                "    uint8_t shift;\n"
+                "} MagicEntry;\n\n");
     write_magic(fp, rook_magics, "ROOK_MAGICS");
+    fprintf(fp, "\n");
     write_magic(fp, bishop_magics, "BISHOP_MAGICS");
-    fprintf(fp, "// clang-format on\n");
+    fprintf(fp, "\n#endif // MAGICS_H");
 }
 
 int main() {

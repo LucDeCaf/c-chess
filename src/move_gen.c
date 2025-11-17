@@ -1,6 +1,5 @@
 #include "move_gen.h"
 #include "gen/magics.h"
-#include "magic.h"
 #include "move.h"
 #include "piece.h"
 #include <inttypes.h>
