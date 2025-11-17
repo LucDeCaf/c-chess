@@ -3,6 +3,7 @@
 #include "move.h"
 #include "piece.h"
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 // Copied from old project, hence why not in 0x notation
@@ -72,6 +73,9 @@ const uint64_t KNIGHT_TARGETS[64] = {
     4679521487814656ULL,
     9077567998918656ULL,
 };
+
+// TODO
+const uint64_t KING_TARGETS[64];
 
 int magic_index(const MagicEntry *entry, uint64_t blockers) {
     blockers &= entry->mask;
@@ -251,11 +255,11 @@ int generate_moves(Board *board, Move *moves) {
 
     Color color = board->current_turn;
     uint64_t pawns = board_bitboard(board, PiecePawn, color);
-    // uint64_t knights = board_bitboard(board, PieceKnight, color);
+    uint64_t knights = board_bitboard(board, PieceKnight, color);
     uint64_t bishops = board_bitboard(board, PieceBishop, color);
-    // uint64_t rooks = board_bitboard(board, PieceRook, color);
-    // uint64_t queens = board_bitboard(board, PieceQueen, color);
-    // int king = ctz_ll(board_bitboard(board, PieceKing, color));
+    uint64_t rooks = board_bitboard(board, PieceRook, color);
+    uint64_t queens = board_bitboard(board, PieceQueen, color);
+    int king = ctz_ll(board_bitboard(board, PieceKing, color));
     uint64_t friends = board_pieces(board, color);
     uint64_t enemies = board_pieces(board, color_inverse(color));
     uint64_t blockers = friends | enemies;
@@ -313,7 +317,22 @@ int generate_moves(Board *board, Move *moves) {
         moves[moves_i++] = move;
     }
 
-    // TODO en passant
+    // Knights
+    for (source = 0; knights; knights >>= 1, source++) {
+        if (!(knights & 1ULL))
+            continue;
+
+        uint64_t targets = KNIGHT_TARGETS[source] & ~friends;
+        for (target = 0; targets; targets >>= 1, target++) {
+            if (!(targets & 1ULL))
+                continue;
+
+            uint64_t mask = 1ULL << target;
+            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            Move move = new_move(source, target, flags);
+            moves[moves_i++] = move;
+        }
+    }
 
     // Bishops
     for (source = 0; bishops; bishops >>= 1, source++) {
@@ -332,7 +351,55 @@ int generate_moves(Board *board, Move *moves) {
         }
     }
 
-    // TODO remaining pieces
+    // Rooks
+    for (source = 0; rooks; rooks >>= 1, source++) {
+        if (!(rooks & 1ULL))
+            continue;
+
+        uint64_t targets = magic_rook_moves(source, blockers) & ~friends;
+        for (target = 0; targets; targets >>= 1, target++) {
+            if (!(targets & 1ULL))
+                continue;
+
+            uint64_t mask = 1ULL << target;
+            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            Move move = new_move(source, target, flags);
+            moves[moves_i++] = move;
+        }
+    }
+
+    // Queens
+    for (source = 0; queens; queens >>= 1, source++) {
+        if (!(queens & 1ULL))
+            continue;
+
+        uint64_t targets = (magic_rook_moves(source, blockers) |
+                            magic_bishop_moves(source, blockers)) &
+                           ~friends;
+        for (target = 0; targets; targets >>= 1, target++) {
+            if (!(targets & 1ULL))
+                continue;
+
+            uint64_t mask = 1ULL << target;
+            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            Move move = new_move(source, target, flags);
+            moves[moves_i++] = move;
+        }
+    }
+
+    // King
+    uint64_t targets = KING_TARGETS[king];
+    for (target = 0; targets; targets >>= 1, target++) {
+        if (!(targets & 1ULL))
+            continue;
+
+        uint64_t mask = 1ULL << target;
+        uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+        Move move = new_move(king, target, flags);
+        moves[moves_i++] = move;
+    }
+
+    // TODO castling, promotion, en passant
 
     return moves_i;
 }
