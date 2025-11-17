@@ -1,6 +1,6 @@
 #include "../magic.h"
 #include "../pcg_basic.h"
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -211,7 +211,7 @@ void write_magic(FILE *restrict fp, MagicEntry *magics[64],
     fprintf(fp, "\n\nstatic MagicEntry %s[64] = {\n", array_name);
     for (int i = 0; i < 64; i++) {
         fprintf(fp,
-                "    { .att = 0, .mask = 0x%llx, .magic = 0x%llx, .shift = "
+                "    { .att = 0, .mask = 0x%" PRIx64 ", .magic = 0x%" PRIx64 ", .shift = "
                 "%d },\n",
                 magics[i]->mask, magics[i]->magic, magics[i]->shift);
     }
@@ -220,9 +220,10 @@ void write_magic(FILE *restrict fp, MagicEntry *magics[64],
 
 void write_magics(FILE *restrict fp, MagicEntry *rook_magics[64],
                   MagicEntry *bishop_magics[64]) {
-    fprintf(fp, "#include \"../magic.h\"");
+    fprintf(fp, "// clang-format off\n#include \"../magic.h\"");
     write_magic(fp, rook_magics, "ROOK_MAGICS");
     write_magic(fp, bishop_magics, "BISHOP_MAGICS");
+    fprintf(fp, "// clang-format on\n");
 }
 
 int main() {
@@ -233,12 +234,12 @@ int main() {
 
     for (int square = 0; square < 64; square++) {
         rook_magics[square] = find_magic(square, ROOK_INDEX_BITS[square], 0);
-        printf("%d: 0x%llx\n", square, rook_magics[square]->magic);
+        printf("%d: 0x%" PRIx64 "\n", square, rook_magics[square]->magic);
     }
     for (int square = 0; square < 64; square++) {
         bishop_magics[square] =
             find_magic(square, BISHOP_INDEX_BITS[square], 1);
-        printf("%d: 0x%llx\n", square, bishop_magics[square]->magic);
+        printf("%d: 0x%" PRIx64 "\n", square, bishop_magics[square]->magic);
     }
 
     FILE *restrict fp = fopen("./src/gen/magics.h", "w");

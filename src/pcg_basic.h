@@ -1,7 +1,7 @@
 #ifndef PCG_BASIC_H
 #define PCG_BASIC_H
 
-#include <stdint.h>
+#include <inttypes.h>
 
 struct pcg_state_setseq_64 {
     uint64_t state;

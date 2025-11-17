@@ -1,9 +1,10 @@
 #include "move_gen.h"
+#include "gen/magics.h"
 #include "magic.h"
 #include "move.h"
 #include "piece.h"
-#include <stdint.h>
-#include <stdio.h>
+#include <inttypes.h>
+#include <stdlib.h>
 
 const uint64_t KNIGHT_TARGETS[64] = {
     132096ULL,
@@ -72,6 +73,136 @@ const uint64_t KNIGHT_TARGETS[64] = {
     9077567998918656ULL,
 };
 
+int magic_index(const MagicEntry *entry, uint64_t blockers) {
+    return ((blockers & entry->mask) * entry->magic) >> entry->shift;
+}
+
+uint64_t magic_rook_moves(int square, uint64_t blockers) {
+    MagicEntry magic = ROOK_MAGICS[square];
+    uint64_t *moves = magic.att;
+    return moves[magic_index(&magic, blockers)];
+}
+
+uint64_t magic_bishop_moves(int square, uint64_t blockers) {
+    MagicEntry magic = BISHOP_MAGICS[square];
+    uint64_t *moves = magic.att;
+    return moves[magic_index(&magic, blockers)];
+}
+
+uint64_t rook_moves(int square, uint64_t blockers) {
+    uint64_t result = 0ULL;
+    int r, f;
+    int rank = square / 8;
+    int file = square % 8;
+
+    for (r = rank + 1; r < 8; r++) {
+        result |= 1ULL << (r * 8 + file);
+        if (blockers & (1ULL << (r * 8 + file)))
+            break;
+    }
+    for (r = rank - 1; r >= 0; r--) {
+        result |= 1ULL << (r * 8 + file);
+        if (blockers & (1ULL << (r * 8 + file)))
+            break;
+    }
+    for (f = file + 1; f < 8; f++) {
+        result |= 1ULL << (rank * 8 + f);
+        if (blockers & (1ULL << (rank * 8 + f)))
+            break;
+    }
+    for (f = file - 1; f >= 0; f--) {
+        result |= 1ULL << (rank * 8 + f);
+        if (blockers & (1ULL << (rank * 8 + f)))
+            break;
+    }
+
+    return result;
+}
+
+uint64_t bishop_moves(int square, uint64_t blockers) {
+    uint64_t result = 0ULL;
+    int r, f;
+    int rank = square / 8;
+    int file = square % 8;
+
+    for (r = rank + 1, f = file + 1; r < 8 && f < 8; r++, f++) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
+            break;
+    }
+    for (r = rank - 1, f = file + 1; r >= 0 && f < 8; r--, f++) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
+            break;
+    }
+    for (r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
+            break;
+    }
+    for (r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--) {
+        result |= 1ULL << (r * 8 + f);
+        if (blockers & (1ULL << (r * 8 + f)))
+            break;
+    }
+
+    return result;
+}
+
+int fill_table(int square, MagicEntry *magic, int bishop) {
+    int table_len = 1 << (64 - magic->shift);
+    uint64_t *table = malloc(sizeof(uint64_t) * table_len);
+    if (table == NULL)
+        return -1;
+
+    for (int i = 0; i < table_len; i++) {
+        table[i] = 0ULL;
+    }
+
+    int i;
+    uint64_t moves;
+    uint64_t mask = magic->mask;
+    uint64_t blockers = 0ULL;
+    do {
+        moves = bishop ? bishop_moves(square, blockers)
+                       : rook_moves(square, blockers);
+        i = magic_index(magic, blockers);
+        table[i] = moves;
+
+        blockers = (blockers - mask) & mask;
+    } while (blockers);
+
+    magic->att = table;
+
+    return 0;
+}
+
+int magic_init(void) {
+    int i, error;
+    for (i = 0; i < 64; i++) {
+        error = fill_table(i, &ROOK_MAGICS[i], 0);
+        if (error)
+            return error;
+        error = fill_table(i, &BISHOP_MAGICS[i], 1);
+        if (error)
+            return error;
+    }
+    return 0;
+}
+
+void magic_cleanup(void) {
+    for (int i = 0; i < 64; i++) {
+        if (ROOK_MAGICS[i].att != NULL) {
+            free(ROOK_MAGICS[i].att);
+            ROOK_MAGICS[i].att = NULL;
+        }
+        if (BISHOP_MAGICS[i].att != NULL) {
+            free(BISHOP_MAGICS[i].att);
+            BISHOP_MAGICS[i].att = NULL;
+        }
+    }
+}
+
 int move_gen_init() {
     return magic_init();
 }
@@ -113,15 +244,15 @@ static inline uint64_t rrot(uint64_t n, int d) {
 //     support).
 int generate_moves(Board *board, Move *moves) {
     int moves_i = 0;
-    Square source, target;
+    int source, target;
 
     Color color = board->current_turn;
     uint64_t pawns = board_bitboard(board, PiecePawn, color);
-    uint64_t knights = board_bitboard(board, PieceKnight, color);
+    // uint64_t knights = board_bitboard(board, PieceKnight, color);
     uint64_t bishops = board_bitboard(board, PieceBishop, color);
-    uint64_t rooks = board_bitboard(board, PieceRook, color);
-    uint64_t queens = board_bitboard(board, PieceQueen, color);
-    Square king = ctz_ll(board_bitboard(board, PieceKing, color));
+    // uint64_t rooks = board_bitboard(board, PieceRook, color);
+    // uint64_t queens = board_bitboard(board, PieceQueen, color);
+    // int king = ctz_ll(board_bitboard(board, PieceKing, color));
     uint64_t friends = board_pieces(board, color);
     uint64_t enemies = board_pieces(board, color_inverse(color));
     uint64_t blockers = friends | enemies;
@@ -141,7 +272,7 @@ int generate_moves(Board *board, Move *moves) {
             continue;
 
         Move move =
-            new_move(target + (8 * color_direction(color)), target, 0b0000);
+            new_move(target + (8 * color_direction(color)), target, MOVE_QUIET);
         moves[moves_i++] = move;
     }
     for (pawn_double_targets >>= 16, target = 16; pawn_double_targets;
@@ -149,8 +280,8 @@ int generate_moves(Board *board, Move *moves) {
         if (!(pawn_double_targets & 1))
             continue;
 
-        Move move =
-            new_move(target + (16 * color_direction(color)), target, 0b0001);
+        Move move = new_move(target + (16 * color_direction(color)), target,
+                             MOVE_DOUBLE_PUSH);
         moves[moves_i++] = move;
     }
 
@@ -166,14 +297,14 @@ int generate_moves(Board *board, Move *moves) {
         if (!(left_captures & 1))
             continue;
 
-        Move move = new_move(target - (9 - color * 2), target, 0b0100);
+        Move move = new_move(target - (9 - color * 2), target, MOVE_CAPTURE);
         moves[moves_i++] = move;
     }
     for (target = 0; right_captures; right_captures >>= 1, target++) {
         if (!(right_captures & 1))
             continue;
 
-        Move move = new_move(target - (7 + color * 2), target, 0b0100);
+        Move move = new_move(target - (7 + color * 2), target, MOVE_CAPTURE);
         moves[moves_i++] = move;
     }
 
@@ -190,7 +321,7 @@ int generate_moves(Board *board, Move *moves) {
                 continue;
 
             uint64_t mask = 1ULL << target;
-            uint8_t flags = (mask & enemies) ? 0b0100 : 0b0000;
+            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             Move move = new_move(source, target, flags);
             moves[moves_i++] = move;
         }

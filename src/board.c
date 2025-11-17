@@ -3,8 +3,7 @@
 #include "move.h"
 #include "piece.h"
 #include "square.h"
-#include <stdint.h>
-#include <stdio.h>
+#include <inttypes.h>
 
 enum {
     BB_KNIGHT_BLACK = 0,
@@ -22,12 +21,12 @@ enum {
 };
 
 // clang-format off
-static const uint8_t FL_WHITE_KINGSIDE  = 0b00000001;
-static const uint8_t FL_WHITE_QUEENSIDE = 0b00000010;
-static const uint8_t FL_BLACK_KINGSIDE  = 0b00000100;
-static const uint8_t FL_BLACK_QUEENSIDE = 0b00001000;
-static const uint8_t FL_EP_CHECK_FLAG   = 0b00010000; // 1 if can ep, 0 if cannot
-static const uint8_t FL_EP_FILE         = 0b11100010; // 0-7, corresponds to each rank
+// static const uint8_t FLAG_WHITE_KINGSIDE  = 1;      // 0b0000_0001
+// static const uint8_t FLAG_WHITE_QUEENSIDE = 2;      // 0b0000_0010
+// static const uint8_t FLAG_BLACK_KINGSIDE  = 4;      // 0b0000_0100
+// static const uint8_t FLAG_BLACK_QUEENSIDE = 8;      // 0b0000_1000
+// static const uint8_t FLAG_EP_CHECK_FLAG   = 16;     // 0b0001_0000
+// static const uint8_t FLAG_EP_FILE         = 7 << 5; // 0b1110_0000
 // clang-format on
 
 void board_init(Board *board) {
@@ -45,7 +44,7 @@ void board_init(Board *board) {
     board->bitboards[BB_KING_WHITE] = 0x10;
     board->bitboards[BB_PAWN_WHITE] = 0xff00;
 
-    board->flags = 0b00001111;
+    board->flags = 15; // 0b0000_1111
     board->current_turn = White;
     board->halfmoves = 0;
     board->fullmoves = 1;
@@ -68,9 +67,9 @@ uint64_t board_pieces(Board *board, Color color) {
 }
 
 void board_make_move(Board *board, Move move) {
-    Square source = move_source(move);
-    Square target = move_target(move);
-    uint8_t flags = move_flags(move);
+    int source = move_source(move);
+    int target = move_target(move);
+    // uint8_t flags = move_flags(move);
     Color moved_color = board->current_turn;
     Piece moved_piece = board_piece_at(board, source);
     Piece captured_piece = board_piece_at(board, target);
@@ -99,7 +98,7 @@ void board_make_move(Board *board, Move move) {
     return;
 }
 
-Piece board_piece_at(Board *board, Square square) {
+Piece board_piece_at(Board *board, int square) {
     uint64_t mask = square_mask(square);
 
     for (int i = 0; i < 12; i++) {

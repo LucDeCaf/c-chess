@@ -1,16 +1,17 @@
 #include "move.h"
 #include "square.h"
+#include <stdint.h>
 
-Move new_move(Square source, Square target, uint8_t flags) {
-    return (source) | (target << 6) | (flags << 12);
+Move new_move(int source, int target, uint8_t flags) {
+    return (source) | (target << 6) | ((uint16_t)flags << 12);
 }
 
-Square move_source(Move move) {
-    return move & 0b111111;
+int move_source(Move move) {
+    return move & 63;
 }
 
-Square move_target(Move move) {
-    return (move >> 6) & 0b111111;
+int move_target(Move move) {
+    return (move >> 6) & 63;
 }
 
 uint8_t move_flags(Move move) {

@@ -2,7 +2,7 @@
 #include "../fen.h"
 #include "../move_gen.h"
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +37,7 @@ int main() {
         }
 
         else if (strncmp(buf, "clear", 5) == 0) {
-            printf("\e[1;1H\e[2J");
+            printf("\033[1;1H\033[2J");
         }
 
         else if (strncmp(buf, "reset", 5) == 0) {
@@ -259,11 +259,11 @@ Move move_from_string(char *buf) {
     if (len != 4 && len != 5)
         return 0;
 
-    Square source = (buf[0] - 'a') + (buf[1] - '1') * 8;
+    int source = (buf[0] - 'a') + (buf[1] - '1') * 8;
     if (source < 0 || source > 63)
         return 0;
 
-    Square target = (buf[2] - 'a') + (buf[3] - '1') * 8;
+    int target = (buf[2] - 'a') + (buf[3] - '1') * 8;
     if (target < 0 || target > 63)
         return 0;
 
@@ -285,14 +285,14 @@ Move move_from_string(char *buf) {
         }
     }
 
-    uint16_t flags = (promotion == PieceNone) ? 0b0000 : (0b1000 | promotion);
+    uint8_t flags = (promotion == PieceNone) ? 0 : (MOVE_PROMOTION | promotion);
     return new_move(source, target, flags);
 }
 
 void move_to_string(Move move, char out[6]) {
     // Check promotion bit
     char promotion_chars[4] = "nbrq";
-    Square s = move_source(move), t = move_target(move);
+    int s = move_source(move), t = move_target(move);
     int f = move_flags(move);
     int sr, sf, tr, tf;
     sr = square_rank(s);

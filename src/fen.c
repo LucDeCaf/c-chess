@@ -1,7 +1,7 @@
 #include "fen.h"
 #include "board.h"
 #include "color.h"
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -131,7 +131,6 @@ int load_fen(Board *board, char *fen) {
         i++;
 
     // Halfmoves
-    int read;
     int halfmoves, fullmoves;
     if (sscanf(fen + i, " %d %d", &halfmoves, &fullmoves) != 2) {
         return -5;

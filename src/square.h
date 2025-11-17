@@ -1,9 +1,9 @@
 #ifndef SQUARE_H
 #define SQUARE_H
 
-#include <stdint.h>
+#include <inttypes.h>
 
-typedef enum {
+enum {
     A1,
     B1,
     C1,
@@ -68,10 +68,10 @@ typedef enum {
     F8,
     G8,
     H8,
-} Square;
+};
 
-uint64_t square_mask(Square);
-uint8_t square_rank(Square);
-uint8_t square_file(Square);
+uint64_t square_mask(int);
+uint8_t square_rank(int);
+uint8_t square_file(int);
 
 #endif // SQUARE_H
