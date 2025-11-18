@@ -15,7 +15,7 @@ void handle_set(Board *, char *);
 void move_to_string(Move, char[6]);
 Move move_from_string(char *);
 
-int main() {
+int main(void) {
     Board board;
     board_init(&board);
     move_gen_init();

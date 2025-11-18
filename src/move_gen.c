@@ -275,11 +275,11 @@ void magic_cleanup(void) {
     }
 }
 
-int move_gen_init() {
+int move_gen_init(void) {
     return magic_init();
 }
 
-void move_gen_cleanup() {
+void move_gen_cleanup(void) {
     magic_cleanup();
 }
 

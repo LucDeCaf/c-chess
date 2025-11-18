@@ -14,14 +14,14 @@ typedef struct {
 
 pcg32_random_t rng;
 
-uint64_t random_u64() {
+uint64_t random_u64(void) {
     uint64_t a, b;
     a = pcg32_random_r(&rng);
     b = pcg32_random_r(&rng);
     return (a << 32) | b;
 }
 
-uint64_t random_magic() {
+uint64_t random_magic(void) {
     return random_u64() & random_u64() & random_u64();
 }
 
@@ -240,10 +240,10 @@ void write_magics(FILE *restrict fp, MagicEntry *rook_magics[64],
     write_magic(fp, rook_magics, "ROOK_MAGICS");
     fprintf(fp, "\n");
     write_magic(fp, bishop_magics, "BISHOP_MAGICS");
-    fprintf(fp, "\n#endif // MAGICS_H");
+    fprintf(fp, "\n#endif // MAGICS_H\n");
 }
 
-int main() {
+int main(void) {
     pcg32_srandom_r(&rng, time(NULL), (intptr_t)&rng);
 
     MagicEntry *rook_magics[64];
