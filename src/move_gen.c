@@ -1,9 +1,12 @@
 #include "move_gen.h"
+#include "board.h"
+#include "color.h"
 #include "gen/magics.h"
 #include "move.h"
 #include "piece.h"
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 // Copied from old project, hence why not in 0x notation
@@ -310,13 +313,14 @@ static inline uint64_t rrot(uint64_t n, int d) {
     return (n >> d) | (n << (64 - d));
 }
 
-// NB: Caller needs to guarantee there is enough space in 'moves'
-//     Normally, 218 should be enough (max moves in 1 pos), but
-//     for variants this may change (unsure if I will add variant
+// NB: Caller needs to guarantee there is enough space in 'moves'.
+//     Normally, 218 should be enough (max moves in a single position),
+//     but for variants this *might* change (unsure if I will add variant
 //     support).
 int generate_moves(Board *board, Move *moves) {
     int moves_i = 0;
     int source, target;
+    Move move;
 
     Color color = board->current_turn;
     uint64_t pawns = board_bitboard(board, PiecePawn, color);
@@ -330,20 +334,46 @@ int generate_moves(Board *board, Move *moves) {
     uint64_t blockers = friends | enemies;
 
     // Pawns
-    // Forward moves
-    uint64_t pawn_home_single_move_rank = 0x0000ff0000000000 >> color * 24;
 
-    uint64_t pawn_targets = rrot(pawns, 8 + color * 48) & ~blockers;
+    // En passant
+    if (board->flags & FLAG_CAN_EP) {
+        int target_file = board->flags >> 5;
+        printf("ep detected as possible: file == %d\n", target_file);
+        int target_rank = 2 + (3 * color);
+        target = target_rank * 8 + target_file;
+
+        int source_rank = target_rank + color_direction(color);
+        int source_file_l = target_file - 1;
+        int source_file_r = target_file + 1;
+        printf("source files: %d && %d\n", source_file_l, source_file_r);
+
+        source = source_rank * 8 + source_file_l;
+        if (source_file_l >= 0 && (1ULL << source) & pawns) {
+            printf("found pawn on left\n");
+            Move move = new_move(source, target, MOVE_EN_PASSANT);
+            moves[moves_i++] = move;
+        }
+        source = source_rank * 8 + source_file_r;
+        if (source_file_r < 8 && (1ULL << source) & pawns) {
+            printf("found pawn on right\n");
+            Move move = new_move(source, target, MOVE_EN_PASSANT);
+            moves[moves_i++] = move;
+        }
+    }
+
+    // Forward moves
+    uint64_t pawn_home_single_move_rank = 0x0000ff0000000000 >> 24 * color;
+
+    uint64_t pawn_targets = rrot(pawns, 8 + 48 * color) & ~blockers;
     uint64_t pawn_double_targets =
-        rrot(pawn_targets & pawn_home_single_move_rank, 8 + color * 48) &
+        rrot(pawn_targets & pawn_home_single_move_rank, 8 + 48 * color) &
         ~blockers;
 
-    // Add to moves
     for (target = 0; pawn_targets; pawn_targets >>= 1, target++) {
         if (!(pawn_targets & 1))
             continue;
 
-        Move move =
+        move =
             new_move(target + (8 * color_direction(color)), target, MOVE_QUIET);
         moves[moves_i++] = move;
     }
@@ -352,13 +382,14 @@ int generate_moves(Board *board, Move *moves) {
         if (!(pawn_double_targets & 1))
             continue;
 
-        Move move = new_move(target + (16 * color_direction(color)), target,
-                             MOVE_DOUBLE_PUSH);
+        move = new_move(target + (16 * color_direction(color)), target,
+                        MOVE_DOUBLE_PUSH);
         moves[moves_i++] = move;
     }
 
     // Pawn captures
-    // uint64_t left_captures = color == White ? pawns << 7 : pawns >> 7;
+    // FIXME this is bad for branch prediction, use rrot or similar to make
+    // branchless
     uint64_t left_captures =
         (color ? pawns << 7 : pawns >> 9) & enemies & ~0x8080808080808080;
     uint64_t right_captures =
@@ -370,7 +401,7 @@ int generate_moves(Board *board, Move *moves) {
             continue;
 
         source = color ? target - 7 : target + 9;
-        Move move = new_move(source, target, MOVE_CAPTURE);
+        move = new_move(source, target, MOVE_CAPTURE);
         moves[moves_i++] = move;
     }
     for (target = 0; right_captures; right_captures >>= 1, target++) {
@@ -378,7 +409,7 @@ int generate_moves(Board *board, Move *moves) {
             continue;
 
         source = color ? target - 9 : target + 7;
-        Move move = new_move(source, target, MOVE_CAPTURE);
+        move = new_move(source, target, MOVE_CAPTURE);
         moves[moves_i++] = move;
     }
 
@@ -394,7 +425,7 @@ int generate_moves(Board *board, Move *moves) {
 
             uint64_t mask = 1ULL << target;
             uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            Move move = new_move(source, target, flags);
+            move = new_move(source, target, flags);
             moves[moves_i++] = move;
         }
     }
@@ -411,7 +442,7 @@ int generate_moves(Board *board, Move *moves) {
 
             uint64_t mask = 1ULL << target;
             uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            Move move = new_move(source, target, flags);
+            move = new_move(source, target, flags);
             moves[moves_i++] = move;
         }
     }
@@ -428,7 +459,7 @@ int generate_moves(Board *board, Move *moves) {
 
             uint64_t mask = 1ULL << target;
             uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            Move move = new_move(source, target, flags);
+            move = new_move(source, target, flags);
             moves[moves_i++] = move;
         }
     }
@@ -447,7 +478,7 @@ int generate_moves(Board *board, Move *moves) {
 
             uint64_t mask = 1ULL << target;
             uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            Move move = new_move(source, target, flags);
+            move = new_move(source, target, flags);
             moves[moves_i++] = move;
         }
     }
@@ -460,11 +491,21 @@ int generate_moves(Board *board, Move *moves) {
 
         uint64_t mask = 1ULL << target;
         uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-        Move move = new_move(king, target, flags);
+        move = new_move(king, target, flags);
         moves[moves_i++] = move;
     }
 
-    // TODO castling, promotion, en passant
+    // Castling
+    if (board->flags & (FLAG_BLACK_KINGSIDE << (2 * color))) {
+        move = new_move(king, king + 2, MOVE_KINGSIDE);
+        moves[moves_i++] = move;
+    }
+    if (board->flags & (FLAG_BLACK_QUEENSIDE << (2 * color))) {
+        move = new_move(king, king - 2, MOVE_QUEENSIDE);
+        moves[moves_i++] = move;
+    }
+
+    // TODO promotion
 
     return moves_i;
 }

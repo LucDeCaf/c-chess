@@ -1,3 +1,6 @@
+/**
+ * Adapted from https://www.pcg-random.org/downloads/pcg-c-basic-0.9.zip
+ */
 #include "pcg_basic.h"
 
 void pcg32_srandom_r(pcg32_random_t *rng, uint64_t initstate,

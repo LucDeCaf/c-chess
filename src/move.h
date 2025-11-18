@@ -11,8 +11,12 @@ typedef uint16_t Move;
 #define MOVE_PROMOTION   8 // 0b1000
 #define MOVE_CAPTURE     4 // 0b0100
 #define MOVE_SPECIAL     3 // 0b0011
+
 #define MOVE_QUIET       0 // 0b0000
 #define MOVE_DOUBLE_PUSH 1 // 0b0001
+#define MOVE_KINGSIDE    2 // 0b0010
+#define MOVE_QUEENSIDE   3 // 0b0011
+#define MOVE_EN_PASSANT  5 // 0b0101
 // clang-format on
 
 Move new_move(int source, int target, uint8_t flags);

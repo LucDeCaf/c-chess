@@ -4,6 +4,7 @@
 #include "piece.h"
 #include "square.h"
 #include <inttypes.h>
+#include <stdio.h>
 
 enum {
     BB_KNIGHT_BLACK = 0,
@@ -19,15 +20,6 @@ enum {
     BB_KING_WHITE,
     BB_PAWN_WHITE,
 };
-
-// clang-format off
-// static const uint8_t FLAG_WHITE_KINGSIDE  = 1;      // 0b0000_0001
-// static const uint8_t FLAG_WHITE_QUEENSIDE = 2;      // 0b0000_0010
-// static const uint8_t FLAG_BLACK_KINGSIDE  = 4;      // 0b0000_0100
-// static const uint8_t FLAG_BLACK_QUEENSIDE = 8;      // 0b0000_1000
-// static const uint8_t FLAG_EP_CHECK_FLAG   = 16;     // 0b0001_0000
-// static const uint8_t FLAG_EP_FILE         = 7 << 5; // 0b1110_0000
-// clang-format on
 
 void board_init(Board *board) {
     // Starting position
@@ -69,7 +61,7 @@ uint64_t board_pieces(Board *board, Color color) {
 void board_make_move(Board *board, Move move) {
     int source = move_source(move);
     int target = move_target(move);
-    // uint8_t flags = move_flags(move);
+    uint8_t flags = move_flags(move);
     Color moved_color = board->current_turn;
     Piece moved_piece = board_piece_at(board, source);
     Piece captured_piece = board_piece_at(board, target);
@@ -78,11 +70,27 @@ void board_make_move(Board *board, Move move) {
     uint64_t *moved_bb = board_bitboard_p(board, moved_piece, moved_color);
     *moved_bb ^= square_mask(source) | square_mask(target);
 
+    // If EP, capture pawn
+    printf("flags: %d\n", flags);
+    if (flags == MOVE_EN_PASSANT) {
+        printf("MOVE: EN PASSANT\n");
+        captured_piece = PiecePawn;
+        target += (8 * color_direction(moved_color));
+    }
+
     // If capture, remove captured piece
     if (captured_piece != PieceNone) {
         uint64_t *captured_bb =
             board_bitboard_p(board, captured_piece, color_inverse(moved_color));
         *captured_bb ^= square_mask(target);
+    }
+
+    // If double move, update EP
+    if (flags == MOVE_DOUBLE_PUSH) {
+        board->flags |= FLAG_CAN_EP | (square_file(source) << 5);
+    } else {
+        // Clear en passant bits
+        board->flags &= 0x0f;
     }
 
     // Update metadata

@@ -1,3 +1,6 @@
+/**
+ * Adapted from https://www.pcg-random.org/downloads/pcg-c-basic-0.9.zip
+ */
 #ifndef PCG_BASIC_H
 #define PCG_BASIC_H
 
