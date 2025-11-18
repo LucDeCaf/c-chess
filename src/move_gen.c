@@ -388,7 +388,7 @@ int generate_moves(Board *board, Move *moves) {
         if (!(double_targets & 1))
             continue;
 
-        source = target + (8 * color_direction(color));
+        source = target + (16 * color_direction(color));
         moves[moves_i++] = new_move(source, target, MOVE_DOUBLE_PUSH);
     }
 

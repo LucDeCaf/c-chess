@@ -63,14 +63,21 @@ void board_make_move(Board *board, Move move) {
     int source = move_source(move);
     int target = move_target(move);
     uint8_t flags = move_flags(move);
-    Color moved_color = board->current_turn;
+    Color color = board->current_turn;
     Piece moved_piece = board_piece_at(board, source);
     Piece captured_piece = board_piece_at(board, target);
 
-    // Move moved piece
-    uint64_t *moved_bb = board_bitboard_p(board, moved_piece, moved_color);
-    *moved_bb ^= square_mask(source) | square_mask(target);
+    // Move moved piece, unless promotion
+    if (flags & MOVE_PROMOTION) {
+        Piece prom_piece = flags & MOVE_SPECIAL;
+        uint64_t *prom_bb = board_bitboard_p(board, prom_piece, color);
+        *prom_bb |= 1ULL << target;
+    } else {
+        uint64_t *moved_bb = board_bitboard_p(board, moved_piece, color);
+        *moved_bb ^= (1ULL << source) | (1ULL << target);
+    }
 
+    // Handle double moves and EP flags
     if (flags == MOVE_DOUBLE_PUSH) {
         // If double move, allow EP
         board->flags |= FLAG_CAN_EP | (square_file(source) << 5);
@@ -80,32 +87,30 @@ void board_make_move(Board *board, Move move) {
     }
 
     // If EP, capture pawn
-    printf("flags: %d\n", flags);
     if (flags == MOVE_EN_PASSANT) {
-        printf("MOVE: EN PASSANT\n");
         captured_piece = PiecePawn;
-        target += (8 * color_direction(moved_color));
+        target += (8 * color_direction(color));
     }
 
     // If castling, move rook and unset castling
-    if (flags == MOVE_KINGSIDE) {
+    else if (flags == MOVE_KINGSIDE) {
         const uint64_t ROOK_MASK = 0xa000000000000000;
 
-        int shift = color_inverse(moved_color) * 56;
-        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, moved_color);
+        int shift = color_inverse(color) * 56;
+        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
         *rook_bb ^= ROOK_MASK << shift;
     } else if (flags == MOVE_QUEENSIDE) {
         const uint64_t ROOK_MASK = 0x900000000000000;
 
-        int shift = color_inverse(moved_color) * 56;
-        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, moved_color);
+        int shift = color_inverse(color) * 56;
+        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
         *rook_bb ^= ROOK_MASK << shift;
     }
 
     // If capture, remove captured piece
-    else if (captured_piece != PieceNone) {
+    if (captured_piece != PieceNone) {
         uint64_t *captured_bb =
-            board_bitboard_p(board, captured_piece, color_inverse(moved_color));
+            board_bitboard_p(board, captured_piece, color_inverse(color));
         *captured_bb ^= square_mask(target);
     }
 
@@ -119,7 +124,7 @@ void board_make_move(Board *board, Move move) {
     if (source == H8 || target == H8)
         board->flags &= ~FLAG_BLACK_KINGSIDE;
     if (moved_piece == PieceKing)
-        board->flags &= ~(FLAG_WHITE_CASTLE << (moved_color * 2));
+        board->flags &= ~(FLAG_WHITE_CASTLE << (color * 2));
 
     // Update metadata
     board->current_turn ^= 1;

@@ -219,10 +219,10 @@ void handle_moves(Board *board) {
 
 void handle_move(Board *board, char *buf) {
     Move moves[300];
-    int moves_len = generate_moves(board, moves);
+    int movecount = generate_moves(board, moves);
     Move move = move_from_string(buf);
 
-    for (int i = 0; i < moves_len; i++) {
+    for (int i = 0; i < movecount; i++) {
         // Check if moves have same source and target
         if ((moves[i] & 0xfff) == (move & 0xfff)) {
             // Replace move with genned move to get flags
@@ -231,7 +231,6 @@ void handle_move(Board *board, char *buf) {
         }
     }
 
-    printf("move: 0x%x\n", move);
     board_make_move(board, move);
 }
 
