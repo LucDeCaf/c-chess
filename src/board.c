@@ -4,6 +4,7 @@
 #include "piece.h"
 #include "square.h"
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 
 enum {
@@ -70,6 +71,14 @@ void board_make_move(Board *board, Move move) {
     uint64_t *moved_bb = board_bitboard_p(board, moved_piece, moved_color);
     *moved_bb ^= square_mask(source) | square_mask(target);
 
+    if (flags == MOVE_DOUBLE_PUSH) {
+        // If double move, allow EP
+        board->flags |= FLAG_CAN_EP | (square_file(source) << 5);
+    } else {
+        // Else, clear en passant bits
+        board->flags &= 0x0f;
+    }
+
     // If EP, capture pawn
     printf("flags: %d\n", flags);
     if (flags == MOVE_EN_PASSANT) {
@@ -78,20 +87,39 @@ void board_make_move(Board *board, Move move) {
         target += (8 * color_direction(moved_color));
     }
 
+    // If castling, move rook and unset castling
+    if (flags == MOVE_KINGSIDE) {
+        const uint64_t ROOK_MASK = 0xa000000000000000;
+
+        int shift = color_inverse(moved_color) * 56;
+        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, moved_color);
+        *rook_bb ^= ROOK_MASK << shift;
+    } else if (flags == MOVE_QUEENSIDE) {
+        const uint64_t ROOK_MASK = 0x900000000000000;
+
+        int shift = color_inverse(moved_color) * 56;
+        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, moved_color);
+        *rook_bb ^= ROOK_MASK << shift;
+    }
+
     // If capture, remove captured piece
-    if (captured_piece != PieceNone) {
+    else if (captured_piece != PieceNone) {
         uint64_t *captured_bb =
             board_bitboard_p(board, captured_piece, color_inverse(moved_color));
         *captured_bb ^= square_mask(target);
     }
 
-    // If double move, update EP
-    if (flags == MOVE_DOUBLE_PUSH) {
-        board->flags |= FLAG_CAN_EP | (square_file(source) << 5);
-    } else {
-        // Clear en passant bits
-        board->flags &= 0x0f;
-    }
+    // Unset castling flags if necessary
+    if (source == A1 || target == A1)
+        board->flags &= ~FLAG_WHITE_QUEENSIDE;
+    if (source == H1 || target == H1)
+        board->flags &= ~FLAG_WHITE_KINGSIDE;
+    if (source == A8 || target == A8)
+        board->flags &= ~FLAG_BLACK_QUEENSIDE;
+    if (source == H8 || target == H8)
+        board->flags &= ~FLAG_BLACK_KINGSIDE;
+    if (moved_piece == PieceKing)
+        board->flags &= ~(FLAG_WHITE_CASTLE << (moved_color * 2));
 
     // Update metadata
     board->current_turn ^= 1;

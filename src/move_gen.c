@@ -6,7 +6,6 @@
 #include "piece.h"
 #include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 // Copied from old project, hence why not in 0x notation
@@ -318,11 +317,15 @@ static inline uint64_t rrot(uint64_t n, int d) {
 //     but for variants this *might* change (unsure if I will add variant
 //     support).
 int generate_moves(Board *board, Move *moves) {
+    // Common variables
     int moves_i = 0;
     int source, target;
-    uint64_t sources, targets;
+    uint16_t flags;
+    int source_rank, target_rank, target_file;
+    uint64_t targets;
     Move move;
 
+    // Useful values
     Color color = board->current_turn;
     uint64_t pawns = board_bitboard(board, PiecePawn, color);
     uint64_t knights = board_bitboard(board, PieceKnight, color);
@@ -335,43 +338,36 @@ int generate_moves(Board *board, Move *moves) {
     uint64_t blockers = friends | enemies;
 
     // Pawns
-
     // En passant
     if (board->flags & FLAG_CAN_EP) {
-        int target_file = board->flags >> 5;
-        printf("ep detected as possible: file == %d\n", target_file);
-        int target_rank = 2 + (3 * color);
+        target_file = board->flags >> 5;
+        target_rank = 2 + (3 * color);
         target = target_rank * 8 + target_file;
 
-        int source_rank = target_rank + color_direction(color);
+        source_rank = target_rank + color_direction(color);
         int source_file_l = target_file - 1;
         int source_file_r = target_file + 1;
-        printf("source files: %d && %d\n", source_file_l, source_file_r);
 
         source = source_rank * 8 + source_file_l;
         if (source_file_l >= 0 && (1ULL << source) & pawns) {
-            printf("found pawn on left\n");
-            Move move = new_move(source, target, MOVE_EN_PASSANT);
-            moves[moves_i++] = move;
+            moves[moves_i++] = new_move(source, target, MOVE_EN_PASSANT);
         }
         source = source_rank * 8 + source_file_r;
         if (source_file_r < 8 && (1ULL << source) & pawns) {
-            printf("found pawn on right\n");
-            Move move = new_move(source, target, MOVE_EN_PASSANT);
-            moves[moves_i++] = move;
+            moves[moves_i++] = new_move(source, target, MOVE_EN_PASSANT);
         }
     }
 
     // Forward moves
     uint64_t pawn_home_single_move_rank = 0x0000ff0000000000 >> 24 * color;
 
-    uint64_t pawn_targets = rrot(pawns, 8 + 48 * color) & ~blockers;
-    uint64_t pawn_double_targets =
-        rrot(pawn_targets & pawn_home_single_move_rank, 8 + 48 * color) &
+    uint64_t single_targets = rrot(pawns, 8 + 48 * color) & ~blockers;
+    uint64_t double_targets =
+        rrot(single_targets & pawn_home_single_move_rank, 8 + 48 * color) &
         ~blockers;
 
-    for (target = 0; pawn_targets; pawn_targets >>= 1, target++) {
-        if (!(pawn_targets & 1))
+    for (target = 0; single_targets; single_targets >>= 1, target++) {
+        if (!(single_targets & 1))
             continue;
 
         source = target + (8 * color_direction(color));
@@ -387,14 +383,13 @@ int generate_moves(Board *board, Move *moves) {
         moves[moves_i++] = new_move(source, target, MOVE_QUIET);
     }
 
-    for (pawn_double_targets >>= 16, target = 16; pawn_double_targets;
-         pawn_double_targets >>= 1, target++) {
-        if (!(pawn_double_targets & 1))
+    for (double_targets >>= 16, target = 16; double_targets;
+         double_targets >>= 1, target++) {
+        if (!(double_targets & 1))
             continue;
 
-        move = new_move(target + (16 * color_direction(color)), target,
-                        MOVE_DOUBLE_PUSH);
-        moves[moves_i++] = move;
+        source = target + (8 * color_direction(color));
+        moves[moves_i++] = new_move(source, target, MOVE_DOUBLE_PUSH);
     }
 
     // Pawn captures
@@ -409,6 +404,7 @@ int generate_moves(Board *board, Move *moves) {
     for (target = 0; left_captures; left_captures >>= 1, target++) {
         if (!(left_captures & 1))
             continue;
+
         source = color ? target - 7 : target + 9;
 
         if (target < 8 || target > 55) {
@@ -424,6 +420,7 @@ int generate_moves(Board *board, Move *moves) {
     for (target = 0; right_captures; right_captures >>= 1, target++) {
         if (!(right_captures & 1))
             continue;
+
         source = color ? target - 9 : target + 7;
 
         if (target < 8 || target > 55) {
@@ -448,9 +445,8 @@ int generate_moves(Board *board, Move *moves) {
                 continue;
 
             uint64_t mask = 1ULL << target;
-            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            move = new_move(source, target, flags);
-            moves[moves_i++] = move;
+            flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            moves[moves_i++] = new_move(source, target, flags);
         }
     }
 
@@ -465,9 +461,8 @@ int generate_moves(Board *board, Move *moves) {
                 continue;
 
             uint64_t mask = 1ULL << target;
-            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            move = new_move(source, target, flags);
-            moves[moves_i++] = move;
+            flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            moves[moves_i++] = new_move(source, target, flags);
         }
     }
 
@@ -482,9 +477,8 @@ int generate_moves(Board *board, Move *moves) {
                 continue;
 
             uint64_t mask = 1ULL << target;
-            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            move = new_move(source, target, flags);
-            moves[moves_i++] = move;
+            flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            moves[moves_i++] = new_move(source, target, flags);
         }
     }
 
@@ -501,9 +495,8 @@ int generate_moves(Board *board, Move *moves) {
                 continue;
 
             uint64_t mask = 1ULL << target;
-            uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-            move = new_move(source, target, flags);
-            moves[moves_i++] = move;
+            flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+            moves[moves_i++] = new_move(source, target, flags);
         }
     }
 
@@ -514,9 +507,8 @@ int generate_moves(Board *board, Move *moves) {
             continue;
 
         uint64_t mask = 1ULL << target;
-        uint8_t flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
-        move = new_move(king, target, flags);
-        moves[moves_i++] = move;
+        flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
+        moves[moves_i++] = new_move(king, target, flags);
     }
 
     // Castling
@@ -528,8 +520,6 @@ int generate_moves(Board *board, Move *moves) {
         move = new_move(king, king - 2, MOVE_QUEENSIDE);
         moves[moves_i++] = move;
     }
-
-    // TODO promotion
 
     return moves_i;
 }
