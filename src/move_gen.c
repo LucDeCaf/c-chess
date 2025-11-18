@@ -6,6 +6,7 @@
 #include "piece.h"
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 // Copied from old project, hence why not in 0x notation
@@ -351,10 +352,12 @@ int generate_moves(Board *board, Move *moves) {
         source = source_rank * 8 + source_file_l;
         if (source_file_l >= 0 && (1ULL << source) & pawns) {
             moves[moves_i++] = new_move(source, target, MOVE_EN_PASSANT);
+            printf("from: %s\n", "ep left");
         }
         source = source_rank * 8 + source_file_r;
         if (source_file_r < 8 && (1ULL << source) & pawns) {
             moves[moves_i++] = new_move(source, target, MOVE_EN_PASSANT);
+            printf("from: %s\n", "ep left");
         }
     }
 
@@ -377,10 +380,12 @@ int generate_moves(Board *board, Move *moves) {
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION | 1);
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION | 2);
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION | 3);
+            printf("from: %s\n", "promotions");
             continue;
         }
 
         moves[moves_i++] = new_move(source, target, MOVE_QUIET);
+        printf("from: %s\n", "pawn single");
     }
 
     for (double_targets >>= 16, target = 16; double_targets;
@@ -390,6 +395,7 @@ int generate_moves(Board *board, Move *moves) {
 
         source = target + (16 * color_direction(color));
         moves[moves_i++] = new_move(source, target, MOVE_DOUBLE_PUSH);
+        printf("from: %s\n", "pawn double");
     }
 
     // Pawn captures
@@ -413,9 +419,11 @@ int generate_moves(Board *board, Move *moves) {
             moves[moves_i++] = new_move(source, target, base_flags | 1);
             moves[moves_i++] = new_move(source, target, base_flags | 2);
             moves[moves_i++] = new_move(source, target, base_flags | 3);
+            printf("from: %s\n", "pawn promotion capture");
             continue;
         }
         moves[moves_i++] = new_move(source, target, MOVE_CAPTURE);
+        printf("from: %s\n", "pawn capture");
     }
     for (target = 0; right_captures; right_captures >>= 1, target++) {
         if (!(right_captures & 1))
@@ -429,9 +437,11 @@ int generate_moves(Board *board, Move *moves) {
             moves[moves_i++] = new_move(source, target, base_flags | 1);
             moves[moves_i++] = new_move(source, target, base_flags | 2);
             moves[moves_i++] = new_move(source, target, base_flags | 3);
+            printf("from: %s\n", "pawn promotion capture");
             continue;
         }
         moves[moves_i++] = new_move(source, target, MOVE_CAPTURE);
+        printf("from: %s\n", "pawn capture");
     }
 
     // Knights
@@ -447,6 +457,7 @@ int generate_moves(Board *board, Move *moves) {
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
+            printf("from: %s\n", "knights");
         }
     }
 
@@ -463,6 +474,7 @@ int generate_moves(Board *board, Move *moves) {
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
+            printf("from: %s\n", "bishops");
         }
     }
 
@@ -479,6 +491,7 @@ int generate_moves(Board *board, Move *moves) {
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
+            printf("from: %s\n", "rooks");
         }
     }
 
@@ -497,6 +510,7 @@ int generate_moves(Board *board, Move *moves) {
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
+            printf("from: %s\n", "queens");
         }
     }
 
