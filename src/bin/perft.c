@@ -11,13 +11,11 @@
 int EXITCODE = 0;
 
 int perft(Board *board, int depth) {
-    if (depth == 0)
-        return 1;
+    if (depth == 0) return 1;
 
     Move moves[300];
     int movecount = generate_moves(board, moves);
-    if (depth == 1)
-        return movecount;
+    if (depth == 1) return movecount;
 
     int count = 0;
     for (int i = 0; i < movecount; i++) {

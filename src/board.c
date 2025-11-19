@@ -119,14 +119,10 @@ void board_make_move(Board *board, Move move) {
     }
 
     // Unset castling flags if necessary
-    if (source == A1 || target == A1)
-        board->flags &= ~FLAG_WHITE_QUEENSIDE;
-    if (source == H1 || target == H1)
-        board->flags &= ~FLAG_WHITE_KINGSIDE;
-    if (source == A8 || target == A8)
-        board->flags &= ~FLAG_BLACK_QUEENSIDE;
-    if (source == H8 || target == H8)
-        board->flags &= ~FLAG_BLACK_KINGSIDE;
+    if (source == A1 || target == A1) board->flags &= ~FLAG_WHITE_QUEENSIDE;
+    if (source == H1 || target == H1) board->flags &= ~FLAG_WHITE_KINGSIDE;
+    if (source == A8 || target == A8) board->flags &= ~FLAG_BLACK_QUEENSIDE;
+    if (source == H8 || target == H8) board->flags &= ~FLAG_BLACK_KINGSIDE;
     if (moved_piece == PieceKing)
         board->flags &= ~(FLAG_WHITE_CASTLE << (color * 2));
 

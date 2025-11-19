@@ -51,23 +51,19 @@ uint64_t rook_moves_iter(int square, uint64_t blockers) {
 
     for (r = rank + 1; r < 8; r++) {
         result |= 1ULL << (r * 8 + file);
-        if (blockers & (1ULL << (r * 8 + file)))
-            break;
+        if (blockers & (1ULL << (r * 8 + file))) break;
     }
     for (r = rank - 1; r >= 0; r--) {
         result |= 1ULL << (r * 8 + file);
-        if (blockers & (1ULL << (r * 8 + file)))
-            break;
+        if (blockers & (1ULL << (r * 8 + file))) break;
     }
     for (f = file + 1; f < 8; f++) {
         result |= 1ULL << (rank * 8 + f);
-        if (blockers & (1ULL << (rank * 8 + f)))
-            break;
+        if (blockers & (1ULL << (rank * 8 + f))) break;
     }
     for (f = file - 1; f >= 0; f--) {
         result |= 1ULL << (rank * 8 + f);
-        if (blockers & (1ULL << (rank * 8 + f)))
-            break;
+        if (blockers & (1ULL << (rank * 8 + f))) break;
     }
 
     return result;
@@ -99,23 +95,19 @@ uint64_t bishop_moves_iter(int square, uint64_t blockers) {
 
     for (r = rank + 1, f = file + 1; r < 8 && f < 8; r++, f++) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
     for (r = rank - 1, f = file + 1; r >= 0 && f < 8; r--, f++) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
     for (r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
     for (r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
 
     return result;
@@ -161,8 +153,7 @@ MagicEntry *find_magic(int square, int index_bits, int bishop) {
             blockers = (blockers - mask) & mask;
         } while (blockers);
 
-        if (!fail)
-            return entry;
+        if (!fail) return entry;
     }
 }
 
