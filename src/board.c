@@ -67,13 +67,15 @@ void board_make_move(Board *board, Move move) {
     Piece moved_piece = board_piece_at(board, source);
     Piece captured_piece = board_piece_at(board, target);
 
+    uint64_t *moved_bb = board_bitboard_p(board, moved_piece, color);
+
     // Move moved piece, unless promotion
     if (flags & MOVE_PROMOTION) {
         Piece prom_piece = flags & MOVE_SPECIAL;
         uint64_t *prom_bb = board_bitboard_p(board, prom_piece, color);
+        *moved_bb ^= 1ULL << source;
         *prom_bb |= 1ULL << target;
     } else {
-        uint64_t *moved_bb = board_bitboard_p(board, moved_piece, color);
         *moved_bb ^= (1ULL << source) | (1ULL << target);
     }
 
@@ -94,17 +96,19 @@ void board_make_move(Board *board, Move move) {
 
     // If castling, move rook and unset castling
     else if (flags == MOVE_KINGSIDE) {
+        printf("kingside\n");
         const uint64_t ROOK_MASK = 0xa000000000000000;
 
-        int shift = color_inverse(color) * 56;
+        int shift = color * 56;
         uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
-        *rook_bb ^= ROOK_MASK << shift;
+        *rook_bb ^= ROOK_MASK >> shift;
     } else if (flags == MOVE_QUEENSIDE) {
+        printf("queenside\n");
         const uint64_t ROOK_MASK = 0x900000000000000;
 
-        int shift = color_inverse(color) * 56;
+        int shift = color * 56;
         uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
-        *rook_bb ^= ROOK_MASK << shift;
+        *rook_bb ^= ROOK_MASK >> shift;
     }
 
     // If capture, remove captured piece
@@ -135,7 +139,10 @@ void board_make_move(Board *board, Move move) {
     } else {
         board->halfmoves++;
     }
+}
 
+void board_unmake_move(Board *board, Move move) {
+    // TODO
     return;
 }
 

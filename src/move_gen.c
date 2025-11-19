@@ -172,23 +172,19 @@ uint64_t rook_moves(int square, uint64_t blockers) {
 
     for (r = rank + 1; r < 8; r++) {
         result |= 1ULL << (r * 8 + file);
-        if (blockers & (1ULL << (r * 8 + file)))
-            break;
+        if (blockers & (1ULL << (r * 8 + file))) break;
     }
     for (r = rank - 1; r >= 0; r--) {
         result |= 1ULL << (r * 8 + file);
-        if (blockers & (1ULL << (r * 8 + file)))
-            break;
+        if (blockers & (1ULL << (r * 8 + file))) break;
     }
     for (f = file + 1; f < 8; f++) {
         result |= 1ULL << (rank * 8 + f);
-        if (blockers & (1ULL << (rank * 8 + f)))
-            break;
+        if (blockers & (1ULL << (rank * 8 + f))) break;
     }
     for (f = file - 1; f >= 0; f--) {
         result |= 1ULL << (rank * 8 + f);
-        if (blockers & (1ULL << (rank * 8 + f)))
-            break;
+        if (blockers & (1ULL << (rank * 8 + f))) break;
     }
 
     return result;
@@ -202,23 +198,19 @@ uint64_t bishop_moves(int square, uint64_t blockers) {
 
     for (r = rank + 1, f = file + 1; r < 8 && f < 8; r++, f++) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
     for (r = rank - 1, f = file + 1; r >= 0 && f < 8; r--, f++) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
     for (r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
     for (r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--) {
         result |= 1ULL << (r * 8 + f);
-        if (blockers & (1ULL << (r * 8 + f)))
-            break;
+        if (blockers & (1ULL << (r * 8 + f))) break;
     }
 
     return result;
@@ -227,8 +219,7 @@ uint64_t bishop_moves(int square, uint64_t blockers) {
 int fill_table(int square, MagicEntry *magic, int bishop) {
     int table_len = 1 << (64 - magic->shift);
     uint64_t *table = malloc(sizeof(uint64_t) * table_len);
-    if (table == NULL)
-        return -1;
+    if (table == NULL) return -1;
 
     for (int i = 0; i < table_len; i++) {
         table[i] = 0ULL;
@@ -256,11 +247,9 @@ int magic_init(void) {
     int i, error;
     for (i = 0; i < 64; i++) {
         error = fill_table(i, &ROOK_MAGICS[i], 0);
-        if (error)
-            return error;
+        if (error) return error;
         error = fill_table(i, &BISHOP_MAGICS[i], 1);
-        if (error)
-            return error;
+        if (error) return error;
     }
     return 0;
 }
@@ -294,12 +283,10 @@ int ctz_ll(uint64_t x) {
     return x == 0 ? 64 : __builtin_ctzll(x);
 #elif defined(_MSC_VER)
     uint64_t i;
-    if (_BitScanForward64(&i, x))
-        return i;
+    if (_BitScanForward64(&i, x)) return i;
     return 64;
 #else
-    if (x == 0)
-        return 64;
+    if (x == 0) return 64;
     static const int lookup[64] = {
         0,  1,  2,  7,  3,  13, 8,  19, 4,  25, 14, 28, 9,  34, 20, 40,
         5,  17, 26, 38, 15, 31, 29, 45, 10, 21, 35, 47, 41, 54, 48, 63,
@@ -324,7 +311,6 @@ int generate_moves(Board *board, Move *moves) {
     uint16_t flags;
     int source_rank, target_rank, target_file;
     uint64_t targets;
-    Move move;
 
     // Useful values
     Color color = board->current_turn;
@@ -352,12 +338,10 @@ int generate_moves(Board *board, Move *moves) {
         source = source_rank * 8 + source_file_l;
         if (source_file_l >= 0 && (1ULL << source) & pawns) {
             moves[moves_i++] = new_move(source, target, MOVE_EN_PASSANT);
-            printf("from: %s\n", "ep left");
         }
         source = source_rank * 8 + source_file_r;
         if (source_file_r < 8 && (1ULL << source) & pawns) {
             moves[moves_i++] = new_move(source, target, MOVE_EN_PASSANT);
-            printf("from: %s\n", "ep left");
         }
     }
 
@@ -370,8 +354,7 @@ int generate_moves(Board *board, Move *moves) {
         ~blockers;
 
     for (target = 0; single_targets; single_targets >>= 1, target++) {
-        if (!(single_targets & 1))
-            continue;
+        if (!(single_targets & 1)) continue;
 
         source = target + (8 * color_direction(color));
 
@@ -380,22 +363,18 @@ int generate_moves(Board *board, Move *moves) {
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION | 1);
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION | 2);
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION | 3);
-            printf("from: %s\n", "promotions");
             continue;
         }
 
         moves[moves_i++] = new_move(source, target, MOVE_QUIET);
-        printf("from: %s\n", "pawn single");
     }
 
     for (double_targets >>= 16, target = 16; double_targets;
          double_targets >>= 1, target++) {
-        if (!(double_targets & 1))
-            continue;
+        if (!(double_targets & 1)) continue;
 
         source = target + (16 * color_direction(color));
         moves[moves_i++] = new_move(source, target, MOVE_DOUBLE_PUSH);
-        printf("from: %s\n", "pawn double");
     }
 
     // Pawn captures
@@ -408,8 +387,7 @@ int generate_moves(Board *board, Move *moves) {
 
     // Add to moves
     for (target = 0; left_captures; left_captures >>= 1, target++) {
-        if (!(left_captures & 1))
-            continue;
+        if (!(left_captures & 1)) continue;
 
         source = color ? target - 7 : target + 9;
 
@@ -419,15 +397,12 @@ int generate_moves(Board *board, Move *moves) {
             moves[moves_i++] = new_move(source, target, base_flags | 1);
             moves[moves_i++] = new_move(source, target, base_flags | 2);
             moves[moves_i++] = new_move(source, target, base_flags | 3);
-            printf("from: %s\n", "pawn promotion capture");
             continue;
         }
         moves[moves_i++] = new_move(source, target, MOVE_CAPTURE);
-        printf("from: %s\n", "pawn capture");
     }
     for (target = 0; right_captures; right_captures >>= 1, target++) {
-        if (!(right_captures & 1))
-            continue;
+        if (!(right_captures & 1)) continue;
 
         source = color ? target - 9 : target + 7;
 
@@ -437,88 +412,73 @@ int generate_moves(Board *board, Move *moves) {
             moves[moves_i++] = new_move(source, target, base_flags | 1);
             moves[moves_i++] = new_move(source, target, base_flags | 2);
             moves[moves_i++] = new_move(source, target, base_flags | 3);
-            printf("from: %s\n", "pawn promotion capture");
             continue;
         }
         moves[moves_i++] = new_move(source, target, MOVE_CAPTURE);
-        printf("from: %s\n", "pawn capture");
     }
 
     // Knights
     for (source = 0; knights; knights >>= 1, source++) {
-        if (!(knights & 1ULL))
-            continue;
+        if (!(knights & 1ULL)) continue;
 
         targets = KNIGHT_TARGETS[source] & ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
-            if (!(targets & 1ULL))
-                continue;
+            if (!(targets & 1ULL)) continue;
 
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
-            printf("from: %s\n", "knights");
         }
     }
 
     // Bishops
     for (source = 0; bishops; bishops >>= 1, source++) {
-        if (!(bishops & 1ULL))
-            continue;
+        if (!(bishops & 1ULL)) continue;
 
         targets = magic_bishop_moves(source, blockers) & ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
-            if (!(targets & 1ULL))
-                continue;
+            if (!(targets & 1ULL)) continue;
 
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
-            printf("from: %s\n", "bishops");
         }
     }
 
     // Rooks
     for (source = 0; rooks; rooks >>= 1, source++) {
-        if (!(rooks & 1ULL))
-            continue;
+        if (!(rooks & 1ULL)) continue;
 
         targets = magic_rook_moves(source, blockers) & ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
-            if (!(targets & 1ULL))
-                continue;
+            if (!(targets & 1ULL)) continue;
 
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
-            printf("from: %s\n", "rooks");
         }
     }
 
     // Queens
     for (source = 0; queens; queens >>= 1, source++) {
-        if (!(queens & 1ULL))
-            continue;
+        if (!(queens & 1ULL)) continue;
 
         targets = (magic_rook_moves(source, blockers) |
                    magic_bishop_moves(source, blockers)) &
                   ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
-            if (!(targets & 1ULL))
-                continue;
+            if (!(targets & 1ULL)) continue;
 
             uint64_t mask = 1ULL << target;
             flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
             moves[moves_i++] = new_move(source, target, flags);
-            printf("from: %s\n", "queens");
         }
     }
 
     // King
-    targets = KING_TARGETS[king];
+    targets = KING_TARGETS[king] & ~friends;
     for (target = 0; targets; targets >>= 1, target++) {
-        if (!(targets & 1ULL))
-            continue;
+        if (!(targets & 1ULL)) continue;
 
         uint64_t mask = 1ULL << target;
         flags = (mask & enemies) ? MOVE_CAPTURE : MOVE_QUIET;
@@ -526,14 +486,24 @@ int generate_moves(Board *board, Move *moves) {
     }
 
     // Castling
-    if (board->flags & (FLAG_BLACK_KINGSIDE << (2 * color))) {
-        move = new_move(king, king + 2, MOVE_KINGSIDE);
-        moves[moves_i++] = move;
-    }
-    if (board->flags & (FLAG_BLACK_QUEENSIDE << (2 * color))) {
-        move = new_move(king, king - 2, MOVE_QUEENSIDE);
-        moves[moves_i++] = move;
-    }
+    int can_castle;
+    uint64_t castling_blockers;
+
+    // Kingside
+    can_castle = board->flags & (FLAG_BLACK_KINGSIDE << (2 * color));
+    castling_blockers = blockers & (0x6000000000000000ULL >> (56 * color));
+    printf("can_castle: %d\n", can_castle);
+    printf("castling_blockers: 0x%" PRIx64 "\n", castling_blockers);
+    if (can_castle && !castling_blockers)
+        moves[moves_i++] = new_move(king, king + 2, MOVE_KINGSIDE);
+
+    // Queenside
+    can_castle = board->flags & (FLAG_BLACK_QUEENSIDE << (2 * color));
+    castling_blockers = blockers & (0xe00000000000000ULL >> (56 * color));
+    printf("can_castle: %d\n", can_castle);
+    printf("castling_blockers: 0x%" PRIx64 "\n", castling_blockers);
+    if (can_castle && !castling_blockers)
+        moves[moves_i++] = new_move(king, king - 2, MOVE_QUEENSIDE);
 
     return moves_i;
 }

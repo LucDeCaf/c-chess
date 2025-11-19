@@ -15,9 +15,14 @@ int load_fen(Board *board, char *fen) {
     int rank = 7, file = 0;
     int i;
 
+    // Clear new board
     for (i = 0; i < 12; i++) {
         new_board.bitboards[i] = 0;
     }
+    new_board.flags = 0;
+    new_board.current_turn = White;
+    new_board.halfmoves = 0;
+    new_board.fullmoves = 1;
 
     for (i = 0; i < len; i++) {
         int square = rank * 8 + file;
@@ -25,8 +30,7 @@ int load_fen(Board *board, char *fen) {
             return -1;
         }
 
-        if (fen[i] == ' ')
-            return -1;
+        if (fen[i] == ' ') return -1;
 
         int skip;
         switch (fen[i]) {
@@ -100,14 +104,12 @@ int load_fen(Board *board, char *fen) {
             rank--;
         }
 
-        if (rank < 0)
-            break;
+        if (rank < 0) break;
     }
 
     // Skip piece and following space
     i += 2;
-    if (i >= len)
-        return -2;
+    if (i >= len) return -2;
 
     switch (fen[i++]) {
     case 'w':
@@ -120,15 +122,65 @@ int load_fen(Board *board, char *fen) {
         return -2;
     }
 
-    // TODO castling rights (unimplemented in board)
+    // Castling rights
+    new_board.flags = 0;
     i++;
     while (fen[i] != ' ' && i < len)
-        i++;
+        switch (fen[i++]) {
+        case 'K':
+            new_board.flags |= FLAG_WHITE_KINGSIDE;
+            break;
+        case 'Q':
+            new_board.flags |= FLAG_WHITE_QUEENSIDE;
+            break;
+        case 'k':
+            new_board.flags |= FLAG_BLACK_KINGSIDE;
+            break;
+        case 'q':
+            new_board.flags |= FLAG_BLACK_QUEENSIDE;
+            break;
+        case '-':
+            break;
+        default:
+            return -3;
+        }
 
     // TODO en passant (unimplemented in board)
+    // Only EP file and current turn are needed to get EP square
     i++;
-    while (fen[i] != ' ' && i < len)
-        i++;
+    if (i >= len) return -4;
+    switch (fen[i]) {
+    case 'a':
+        new_board.flags |= FLAG_CAN_EP;
+        break;
+    case 'b':
+        new_board.flags |= FLAG_CAN_EP | (1 << 5);
+        break;
+    case 'c':
+        new_board.flags |= FLAG_CAN_EP | (2 << 5);
+        break;
+    case 'd':
+        new_board.flags |= FLAG_CAN_EP | (3 << 5);
+        break;
+    case 'e':
+        new_board.flags |= FLAG_CAN_EP | (4 << 5);
+        break;
+    case 'f':
+        new_board.flags |= FLAG_CAN_EP | (5 << 5);
+        break;
+    case 'g':
+        new_board.flags |= FLAG_CAN_EP | (6 << 5);
+        break;
+    case 'h':
+        new_board.flags |= FLAG_CAN_EP | (7 << 5);
+        break;
+    case '-':
+        break;
+    default:
+        return -4;
+    }
+    // Skip rank + space
+    i += 2;
 
     // Halfmoves
     int halfmoves, fullmoves;

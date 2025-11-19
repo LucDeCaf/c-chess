@@ -1,9 +1,67 @@
 #include "../board.h"
+#include "../move_gen.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int main(void) {
+#define EXIT(C)                                                                \
+    EXITCODE = C;                                                              \
+    goto exit;
+
+int EXITCODE = 0;
+
+int perft(Board *board, int depth) {
+    if (depth == 0)
+        return 1;
+
+    Move moves[300];
+    int movecount = generate_moves(board, moves);
+    if (depth == 1)
+        return movecount;
+
+    int count = 0;
+    for (int i = 0; i < movecount; i++) {
+        board_make_move(board, moves[i]);
+        count += perft(board, depth - 1);
+        board_unmake_move(board, moves[i]);
+    }
+
+    return count;
+}
+
+void print_usage(const char *program) {
+    printf("Usage: %s depth\n", program);
+}
+
+int main(int argc, char *argv[]) {
     Board board;
+    int depth;
+    char *fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
     board_init(&board);
-    printf("bitboards[0]: %" PRIu64 "\n", board.bitboards[0]);
-    return 0;
+    move_gen_init();
+
+    if (argc < 2) {
+        print_usage(argv[0]);
+        EXIT(1);
+    }
+
+    if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0 ||
+        strcmp(argv[1], "-h") == 0) {
+        print_usage(argv[0]);
+        EXIT(0);
+    }
+
+    depth = atoi(argv[1]);
+    if (depth <= 0) {
+        printf("Invalid value for depth '%s'\n", argv[1]);
+        EXIT(1);
+    }
+
+    int count = perft(&board, depth);
+    printf("Perft result: %d\n", count);
+
+exit:
+    move_gen_cleanup();
+    return EXITCODE;
 }

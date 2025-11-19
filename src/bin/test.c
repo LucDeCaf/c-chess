@@ -3,6 +3,7 @@
 #include "../move_gen.h"
 
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -190,19 +191,34 @@ void handle_dump(Board *board) {
     printf("- Current turn: %s\n", board->current_turn ? "White" : "Black");
     printf("- Halfmoves: %d\n", board->halfmoves);
     printf("- Fullmoves: %d\n", board->fullmoves);
-    printf("** Bitboards\n");
-    dump_bb("Black Knights", board->bitboards[0]);
-    dump_bb("Black Bishops", board->bitboards[1]);
-    dump_bb("Black Rooks", board->bitboards[2]);
-    dump_bb("Black Queens", board->bitboards[3]);
-    dump_bb("Black King", board->bitboards[4]);
-    dump_bb("Black Pawns", board->bitboards[5]);
-    dump_bb("White Knights", board->bitboards[6]);
-    dump_bb("White Bishops", board->bitboards[7]);
-    dump_bb("White Rooks", board->bitboards[8]);
-    dump_bb("White Queens", board->bitboards[9]);
-    dump_bb("White King", board->bitboards[10]);
-    dump_bb("White Pawns", board->bitboards[11]);
+    uint8_t flags = board->flags;
+    printf("- Castling rights: ");
+    if (flags & FLAG_WHITE_KINGSIDE) printf("K");
+    if (flags & FLAG_WHITE_QUEENSIDE) printf("Q");
+    if (flags & FLAG_BLACK_KINGSIDE) printf("k");
+    if (flags & FLAG_BLACK_QUEENSIDE) printf("q");
+    if (!(flags & 0xf)) printf("-");
+    printf("\n");
+    printf("- En passant: ");
+    if (flags & MOVE_EN_PASSANT)
+        printf("%c%c", 'a' + (flags >> 5), board->current_turn ? '6' : '3');
+    else
+        printf("-");
+    printf("\n");
+    /* Too noisy to also print bitboards */
+    // printf("** Bitboards\n");
+    // dump_bb("Black Knights", board->bitboards[0]);
+    // dump_bb("Black Bishops", board->bitboards[1]);
+    // dump_bb("Black Rooks", board->bitboards[2]);
+    // dump_bb("Black Queens", board->bitboards[3]);
+    // dump_bb("Black King", board->bitboards[4]);
+    // dump_bb("Black Pawns", board->bitboards[5]);
+    // dump_bb("White Knights", board->bitboards[6]);
+    // dump_bb("White Bishops", board->bitboards[7]);
+    // dump_bb("White Rooks", board->bitboards[8]);
+    // dump_bb("White Queens", board->bitboards[9]);
+    // dump_bb("White King", board->bitboards[10]);
+    // dump_bb("White Pawns", board->bitboards[11]);
 }
 
 void handle_moves(Board *board) {
@@ -265,16 +281,13 @@ void handle_set(Board *board, char *buf) {
 
 Move move_from_string(char *buf) {
     int len = strlen(buf);
-    if (len != 4 && len != 5)
-        return 0;
+    if (len != 4 && len != 5) return 0;
 
     int source = (buf[0] - 'a') + (buf[1] - '1') * 8;
-    if (source < 0 || source > 63)
-        return 0;
+    if (source < 0 || source > 63) return 0;
 
     int target = (buf[2] - 'a') + (buf[3] - '1') * 8;
-    if (target < 0 || target > 63)
-        return 0;
+    if (target < 0 || target > 63) return 0;
 
     Piece promotion = PieceNone;
     if (len == 5) {
