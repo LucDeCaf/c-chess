@@ -77,7 +77,6 @@ const uint64_t KNIGHT_TARGETS[64] = {
     9077567998918656ULL,
 };
 
-// TODO
 const uint64_t KING_TARGETS[64] = {
     770ULL,
     1797ULL,
@@ -492,16 +491,12 @@ int generate_moves(Board *board, Move *moves) {
     // Kingside
     can_castle = board->flags & (FLAG_BLACK_KINGSIDE << (2 * color));
     castling_blockers = blockers & (0x6000000000000000ULL >> (56 * color));
-    printf("can_castle: %d\n", can_castle);
-    printf("castling_blockers: 0x%" PRIx64 "\n", castling_blockers);
     if (can_castle && !castling_blockers)
         moves[moves_i++] = new_move(king, king + 2, MOVE_KINGSIDE);
 
     // Queenside
     can_castle = board->flags & (FLAG_BLACK_QUEENSIDE << (2 * color));
     castling_blockers = blockers & (0xe00000000000000ULL >> (56 * color));
-    printf("can_castle: %d\n", can_castle);
-    printf("castling_blockers: 0x%" PRIx64 "\n", castling_blockers);
     if (can_castle && !castling_blockers)
         moves[moves_i++] = new_move(king, king - 2, MOVE_QUEENSIDE);
 

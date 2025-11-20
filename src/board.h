@@ -26,7 +26,6 @@ typedef struct {
 
 void board_init(Board *);
 void board_make_move(Board *, Move);
-void board_unmake_move(Board *, Move);
 Piece board_piece_at(Board *, int);
 uint64_t board_bitboard(Board *, Piece, Color);
 uint64_t *board_bitboard_p(Board *, Piece, Color);

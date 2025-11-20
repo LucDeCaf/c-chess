@@ -17,11 +17,12 @@ int perft(Board *board, int depth) {
     int movecount = generate_moves(board, moves);
     if (depth == 1) return movecount;
 
+    Board new_board;
     int count = 0;
     for (int i = 0; i < movecount; i++) {
-        board_make_move(board, moves[i]);
-        count += perft(board, depth - 1);
-        board_unmake_move(board, moves[i]);
+        new_board = *board;
+        board_make_move(&new_board, moves[i]);
+        count += perft(&new_board, depth - 1);
     }
 
     return count;

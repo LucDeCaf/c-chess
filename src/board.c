@@ -130,16 +130,11 @@ void board_make_move(Board *board, Move move) {
     board->current_turn ^= 1;
     board->fullmoves += board->current_turn;
     // TODO: Other ways in which halfmove counter is reset
-    if (moved_piece == PiecePawn) {
+    if (moved_piece == PiecePawn || captured_piece != PieceNone) {
         board->halfmoves = 0;
     } else {
         board->halfmoves++;
     }
-}
-
-void board_unmake_move(Board *board, Move move) {
-    // TODO
-    return;
 }
 
 Piece board_piece_at(Board *board, int square) {

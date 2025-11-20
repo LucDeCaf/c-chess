@@ -145,7 +145,6 @@ int load_fen(Board *board, char *fen) {
             return -3;
         }
 
-    // TODO en passant (unimplemented in board)
     // Only EP file and current turn are needed to get EP square
     i++;
     if (i >= len) return -4;
