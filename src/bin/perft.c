@@ -10,7 +10,7 @@
 
 int EXITCODE = 0;
 
-int perft(Board *board, int depth) {
+uint64_t perft(Board *board, int depth) {
     if (depth == 0) return 1;
 
     Move moves[300];
@@ -18,7 +18,7 @@ int perft(Board *board, int depth) {
     if (depth == 1) return movecount;
 
     Board new_board;
-    int count = 0;
+    uint64_t count = 0;
     for (int i = 0; i < movecount; i++) {
         new_board = *board;
         board_make_move(&new_board, moves[i]);
@@ -57,8 +57,8 @@ int main(int argc, char *argv[]) {
         EXIT(1);
     }
 
-    int count = perft(&board, depth);
-    printf("Perft result: %d\n", count);
+    uint64_t count = perft(&board, depth);
+    printf("Perft result: %" PRIu64 "\n", count);
 
 exit:
     move_gen_cleanup();
