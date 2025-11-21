@@ -125,22 +125,20 @@ void board_make_move(Board *board, Move move) {
     }
 
     // Unset castling flags if necessary
-    if (source == A1 || target == A1) board->flags &= ~FLAG_WHITE_QUEENSIDE;
-    if (source == H1 || target == H1) board->flags &= ~FLAG_WHITE_KINGSIDE;
-    if (source == A8 || target == A8) board->flags &= ~FLAG_BLACK_QUEENSIDE;
-    if (source == H8 || target == H8) board->flags &= ~FLAG_BLACK_KINGSIDE;
-    if (moved_piece == PieceKing)
-        board->flags &= ~(FLAG_WHITE_CASTLE << (color * 2));
+    uint8_t clear_mask =
+        ((source == A1 | target == A1) * FLAG_WHITE_QUEENSIDE) |
+        ((source == H1 | target == H1) * FLAG_WHITE_KINGSIDE) |
+        ((source == A8 | target == A8) * FLAG_BLACK_QUEENSIDE) |
+        ((source == H8 | target == H8) * FLAG_BLACK_KINGSIDE) |
+        ((moved_piece == PieceKing) * (FLAG_BLACK_CASTLE << (color * 2)));
+    uint8_t castling_bits = (board->flags & 0x0f) & ~clear_mask;
+    board->flags = (board->flags & 0xf0) | castling_bits;
 
     // Update metadata
     board->current_turn ^= 1;
     board->fullmoves += board->current_turn;
-    // TODO: Other ways in which halfmove counter is reset
-    if (moved_piece == PiecePawn || captured_piece != PieceNone) {
-        board->halfmoves = 0;
-    } else {
-        board->halfmoves++;
-    }
+    board->halfmoves +=
+        (moved_piece == PiecePawn || captured_piece != PieceNone);
 }
 
 uint64_t board_all_pieces(Board *board) {
@@ -150,6 +148,8 @@ uint64_t board_all_pieces(Board *board) {
            board->bitboards[9] | board->bitboards[10] | board->bitboards[11];
 }
 
+// TODO check if storing `Piece pieces[64]` in board is significantly faster
+// than this
 Piece board_piece_at(Board *board, int square) {
     uint64_t mask = 1ULL << square;
     if (!(board_all_pieces(board) & mask)) return PieceNone;
