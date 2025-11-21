@@ -2,147 +2,12 @@
 #include "board.h"
 #include "color.h"
 #include "gen/magics.h"
+#include "masks.h"
 #include "move.h"
 #include "piece.h"
 #include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-
-// Copied from old project, hence why not in 0x notation
-const uint64_t KNIGHT_TARGETS[64] = {
-    132096ULL,
-    329728ULL,
-    659712ULL,
-    1319424ULL,
-    2638848ULL,
-    5277696ULL,
-    10489856ULL,
-    4202496ULL,
-    33816580ULL,
-    84410376ULL,
-    168886289ULL,
-    337772578ULL,
-    675545156ULL,
-    1351090312ULL,
-    2685403152ULL,
-    1075839008ULL,
-    8657044482ULL,
-    21609056261ULL,
-    43234889994ULL,
-    86469779988ULL,
-    172939559976ULL,
-    345879119952ULL,
-    687463207072ULL,
-    275414786112ULL,
-    2216203387392ULL,
-    5531918402816ULL,
-    11068131838464ULL,
-    22136263676928ULL,
-    44272527353856ULL,
-    88545054707712ULL,
-    175990581010432ULL,
-    70506185244672ULL,
-    567348067172352ULL,
-    1416171111120896ULL,
-    2833441750646784ULL,
-    5666883501293568ULL,
-    11333767002587136ULL,
-    22667534005174272ULL,
-    45053588738670592ULL,
-    18049583422636032ULL,
-    145241105196122112ULL,
-    362539804446949376ULL,
-    725361088165576704ULL,
-    1450722176331153408ULL,
-    2901444352662306816ULL,
-    5802888705324613632ULL,
-    11533718717099671552ULL,
-    4620693356194824192ULL,
-    288234782788157440ULL,
-    576469569871282176ULL,
-    1224997833292120064ULL,
-    2449995666584240128ULL,
-    4899991333168480256ULL,
-    9799982666336960512ULL,
-    1152939783987658752ULL,
-    2305878468463689728ULL,
-    1128098930098176ULL,
-    2257297371824128ULL,
-    4796069720358912ULL,
-    9592139440717824ULL,
-    19184278881435648ULL,
-    38368557762871296ULL,
-    4679521487814656ULL,
-    9077567998918656ULL,
-};
-
-const uint64_t KING_TARGETS[64] = {
-    770ULL,
-    1797ULL,
-    3594ULL,
-    7188ULL,
-    14376ULL,
-    28752ULL,
-    57504ULL,
-    49216ULL,
-    197123ULL,
-    460039ULL,
-    920078ULL,
-    1840156ULL,
-    3680312ULL,
-    7360624ULL,
-    14721248ULL,
-    12599488ULL,
-    50463488ULL,
-    117769984ULL,
-    235539968ULL,
-    471079936ULL,
-    942159872ULL,
-    1884319744ULL,
-    3768639488ULL,
-    3225468928ULL,
-    12918652928ULL,
-    30149115904ULL,
-    60298231808ULL,
-    120596463616ULL,
-    241192927232ULL,
-    482385854464ULL,
-    964771708928ULL,
-    825720045568ULL,
-    3307175149568ULL,
-    7718173671424ULL,
-    15436347342848ULL,
-    30872694685696ULL,
-    61745389371392ULL,
-    123490778742784ULL,
-    246981557485568ULL,
-    211384331665408ULL,
-    846636838289408ULL,
-    1975852459884544ULL,
-    3951704919769088ULL,
-    7903409839538176ULL,
-    15806819679076352ULL,
-    31613639358152704ULL,
-    63227278716305408ULL,
-    54114388906344448ULL,
-    216739030602088448ULL,
-    505818229730443264ULL,
-    1011636459460886528ULL,
-    2023272918921773056ULL,
-    4046545837843546112ULL,
-    8093091675687092224ULL,
-    16186183351374184448ULL,
-    13853283560024178688ULL,
-    144959613005987840ULL,
-    362258295026614272ULL,
-    724516590053228544ULL,
-    1449033180106457088ULL,
-    2898066360212914176ULL,
-    5796132720425828352ULL,
-    11592265440851656704ULL,
-    4665729213955833856ULL,
-};
 
 int magic_index(const MagicEntry *entry, uint64_t blockers) {
     blockers &= entry->mask;
@@ -151,13 +16,13 @@ int magic_index(const MagicEntry *entry, uint64_t blockers) {
     return blockers;
 }
 
-uint64_t magic_rook_moves(int square, uint64_t blockers) {
+uint64_t move_gen_rook_moves(int square, uint64_t blockers) {
     MagicEntry magic = ROOK_MAGICS[square];
     uint64_t *moves = magic.att;
     return moves[magic_index(&magic, blockers)];
 }
 
-uint64_t magic_bishop_moves(int square, uint64_t blockers) {
+uint64_t move_gen_bishop_moves(int square, uint64_t blockers) {
     MagicEntry magic = BISHOP_MAGICS[square];
     uint64_t *moves = magic.att;
     return moves[magic_index(&magic, blockers)];
@@ -303,7 +168,7 @@ static inline uint64_t rrot(uint64_t n, int d) {
 //     Normally, 218 should be enough (max moves in a single position),
 //     but for variants this *might* change (unsure if I will add variant
 //     support).
-int generate_moves(Board *board, Move *moves) {
+int move_gen_generate_moves(Board *board, Move *moves) {
     // Common variables
     int moves_i = 0;
     int source, target;
@@ -434,7 +299,7 @@ int generate_moves(Board *board, Move *moves) {
     for (source = 0; bishops; bishops >>= 1, source++) {
         if (!(bishops & 1ULL)) continue;
 
-        targets = magic_bishop_moves(source, blockers) & ~friends;
+        targets = move_gen_bishop_moves(source, blockers) & ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
             if (!(targets & 1ULL)) continue;
 
@@ -448,7 +313,7 @@ int generate_moves(Board *board, Move *moves) {
     for (source = 0; rooks; rooks >>= 1, source++) {
         if (!(rooks & 1ULL)) continue;
 
-        targets = magic_rook_moves(source, blockers) & ~friends;
+        targets = move_gen_rook_moves(source, blockers) & ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
             if (!(targets & 1ULL)) continue;
 
@@ -462,8 +327,8 @@ int generate_moves(Board *board, Move *moves) {
     for (source = 0; queens; queens >>= 1, source++) {
         if (!(queens & 1ULL)) continue;
 
-        targets = (magic_rook_moves(source, blockers) |
-                   magic_bishop_moves(source, blockers)) &
+        targets = (move_gen_rook_moves(source, blockers) |
+                   move_gen_bishop_moves(source, blockers)) &
                   ~friends;
         for (target = 0; targets; targets >>= 1, target++) {
             if (!(targets & 1ULL)) continue;
@@ -501,4 +366,38 @@ int generate_moves(Board *board, Move *moves) {
         moves[moves_i++] = new_move(king, king - 2, MOVE_QUEENSIDE);
 
     return moves_i;
+}
+
+int move_gen_generate_legal_moves(Board *board, Move *moves) {
+    int pseudo_count = move_gen_generate_moves(board, moves);
+
+    int i = 0;
+    int end = pseudo_count - 1;
+
+    // Replace illegal moves with future moves and test those as well
+    while (i < end) {
+        if (!move_gen_is_legal_move(board, moves[i])) {
+            moves[i] = moves[end--];
+            pseudo_count--;
+            continue;
+        }
+        i++;
+    }
+
+    // Check last move as well
+    if (!move_gen_is_legal_move(board, moves[end])) pseudo_count--;
+
+    if (pseudo_count < 0) return 0;
+    return pseudo_count;
+}
+
+int move_gen_is_legal_move(Board *board, Move move) {
+    Board new_board = *board;
+    board_make_move(&new_board, move);
+    uint64_t king_bb =
+        board_bitboard(&new_board, PieceKing, board->current_turn);
+    int king_square = ctz_ll(king_bb);
+
+    return !board_square_attacked_by(&new_board, king_square,
+                                     new_board.current_turn);
 }

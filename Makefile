@@ -1,24 +1,25 @@
 CC = gcc
 WARNINGS = -Wall -Wextra -Wpedantic
 O_LEVEL = 1
+CFLAGS = 
 
 SOURCE_FILES = $(shell find src src/gen -maxdepth 1 -name "*.c")
 BINARY_FILES = $(shell find src/bin -maxdepth 1 -name "*.c")
 OBJECT_TARGETS = $(patsubst src/%.c,build/%.o,$(SOURCE_FILES))
 BINARY_TARGETS = $(patsubst src/bin/%.c,bin/%,$(BINARY_FILES))
 
-.PHONY: all bin clean
+.PHONY: all bin profile clean
 .SECONDARY: $(OBJECT_TARGETS)
 
 build/%.o: src/%.c
 	@echo "$@"
 	@mkdir -p $(dir $@)
-	@gcc -O$(O_LEVEL) $(WARNINGS) -c $< -o $@
+	@gcc -pg -O$(O_LEVEL) $(WARNINGS) -c $< -o $@
 
 bin/%: src/bin/%.c $(OBJECT_TARGETS)
 	@echo "$@"
 	@mkdir -p $(dir $@)
-	@gcc -O$(O_LEVEL) $(WARNINGS) -o $@ $< $(OBJECT_TARGETS)
+	@gcc -pg -O$(O_LEVEL) $(WARNINGS) -o $@ $< $(OBJECT_TARGETS)
 
 bin: $(BINARY_TARGETS)
 

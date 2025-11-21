@@ -1,6 +1,8 @@
 #include "board.h"
 #include "color.h"
+#include "masks.h"
 #include "move.h"
+#include "move_gen.h"
 #include "piece.h"
 #include "square.h"
 #include <inttypes.h>
@@ -137,8 +139,16 @@ void board_make_move(Board *board, Move move) {
     }
 }
 
+uint64_t board_all_pieces(Board *board) {
+    return board->bitboards[0] | board->bitboards[1] | board->bitboards[2] |
+           board->bitboards[3] | board->bitboards[4] | board->bitboards[5] |
+           board->bitboards[6] | board->bitboards[7] | board->bitboards[8] |
+           board->bitboards[9] | board->bitboards[10] | board->bitboards[11];
+}
+
 Piece board_piece_at(Board *board, int square) {
-    uint64_t mask = square_mask(square);
+    uint64_t mask = 1ULL << square;
+    if (!(board_all_pieces(board) & mask)) return PieceNone;
 
     for (int i = 0; i < 12; i++) {
         if (board->bitboards[i] & mask) {
@@ -148,4 +158,34 @@ Piece board_piece_at(Board *board, int square) {
     }
 
     return PieceNone;
+}
+
+int board_square_attacked_by(Board *board, int square, Color attacking_color) {
+    // Pawn attacks
+    uint64_t pawns = board_bitboard(board, PiecePawn, attacking_color);
+    uint64_t pawn_targets = attacking_color ? WHITE_PAWN_TARGETS[square]
+                                            : BLACK_PAWN_TARGETS[square];
+    if (pawns & pawn_targets) return 1;
+
+    // King attacks
+    uint64_t kings = board_bitboard(board, PieceKing, attacking_color);
+    if (kings & KING_TARGETS[square]) return 1;
+
+    // Knight attacks
+    uint64_t knights = board_bitboard(board, PieceKnight, attacking_color);
+    if (knights & KNIGHT_TARGETS[square]) return 1;
+
+    // Rooks & queens
+    uint64_t blockers = board_pieces(board, White) | board_pieces(board, Black);
+    uint64_t rooks_queens = board_bitboard(board, PieceRook, attacking_color) |
+                            board_bitboard(board, PieceQueen, attacking_color);
+    if (move_gen_rook_moves(square, blockers) & rooks_queens) return 1;
+
+    // Bishops & queens
+    uint64_t bishops_queens =
+        board_bitboard(board, PieceBishop, attacking_color) |
+        board_bitboard(board, PieceQueen, attacking_color);
+    if (move_gen_bishop_moves(square, blockers) & bishops_queens) return 1;
+
+    return 0;
 }

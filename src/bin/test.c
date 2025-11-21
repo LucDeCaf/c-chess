@@ -223,7 +223,7 @@ void handle_dump(Board *board) {
 
 void handle_moves(Board *board) {
     Move moves[256];
-    int movecount = generate_moves(board, moves);
+    int movecount = move_gen_generate_moves(board, moves);
     printf("Moves:\n");
     char buf[6];
     for (int i = 0; i < movecount; i++) {
@@ -235,7 +235,7 @@ void handle_moves(Board *board) {
 
 void handle_move(Board *board, char *buf) {
     Move moves[300];
-    int movecount = generate_moves(board, moves);
+    int movecount = move_gen_generate_moves(board, moves);
     Move move = move_from_string(buf);
 
     for (int i = 0; i < movecount; i++) {

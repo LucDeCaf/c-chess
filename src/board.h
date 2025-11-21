@@ -30,5 +30,6 @@ Piece board_piece_at(Board *, int);
 uint64_t board_bitboard(Board *, Piece, Color);
 uint64_t *board_bitboard_p(Board *, Piece, Color);
 uint64_t board_pieces(Board *, Color);
+int board_square_attacked_by(Board *, int, Color);
 
 #endif // BOARD_H

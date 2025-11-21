@@ -14,8 +14,10 @@ uint64_t perft(Board *board, int depth) {
     if (depth == 0) return 1;
 
     Move moves[300];
-    int movecount = generate_moves(board, moves);
+    int movecount = move_gen_generate_legal_moves(board, moves);
     if (depth == 1) return movecount;
+
+    if (movecount == 0) return 0;
 
     Board new_board;
     uint64_t count = 0;
