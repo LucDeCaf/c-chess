@@ -61,6 +61,12 @@ uint64_t board_pieces(Board *board, Color color) {
     return result;
 }
 
+int board_in_check(Board *board, Color checked_color) {
+    int king_square = ctz_ll(board_bitboard(board, PieceKing, checked_color));
+    return board_square_attacked_by(board, king_square,
+                                    color_inverse(checked_color));
+}
+
 void board_make_move(Board *board, Move move) {
     int source = move_source(move);
     int target = move_target(move);
@@ -98,14 +104,12 @@ void board_make_move(Board *board, Move move) {
 
     // If castling, move rook and unset castling
     else if (flags == MOVE_KINGSIDE) {
-        printf("kingside\n");
         const uint64_t ROOK_MASK = 0xa000000000000000;
 
         int shift = color * 56;
         uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
         *rook_bb ^= ROOK_MASK >> shift;
     } else if (flags == MOVE_QUEENSIDE) {
-        printf("queenside\n");
         const uint64_t ROOK_MASK = 0x900000000000000;
 
         int shift = color * 56;
@@ -163,8 +167,8 @@ Piece board_piece_at(Board *board, int square) {
 int board_square_attacked_by(Board *board, int square, Color attacking_color) {
     // Pawn attacks
     uint64_t pawns = board_bitboard(board, PiecePawn, attacking_color);
-    uint64_t pawn_targets = attacking_color ? WHITE_PAWN_TARGETS[square]
-                                            : BLACK_PAWN_TARGETS[square];
+    uint64_t pawn_targets = attacking_color ? BLACK_PAWN_TARGETS[square]
+                                            : WHITE_PAWN_TARGETS[square];
     if (pawns & pawn_targets) return 1;
 
     // King attacks

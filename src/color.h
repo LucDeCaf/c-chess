@@ -6,12 +6,7 @@ typedef enum {
     White,
 } Color;
 
-inline Color color_inverse(Color c) {
-    return (Color)(c ^ 1);
-}
-
-inline int color_direction(Color c) {
-    return 1 - (2 * c);
-}
+Color color_inverse(Color c);
+int color_direction(Color c);
 
 #endif // COLOR_H

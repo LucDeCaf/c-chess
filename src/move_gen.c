@@ -177,25 +177,26 @@ int move_gen_generate_moves(Board *board, Move *moves) {
     uint64_t targets;
 
     // Useful values
-    Color color = board->current_turn;
-    uint64_t pawns = board_bitboard(board, PiecePawn, color);
-    uint64_t knights = board_bitboard(board, PieceKnight, color);
-    uint64_t bishops = board_bitboard(board, PieceBishop, color);
-    uint64_t rooks = board_bitboard(board, PieceRook, color);
-    uint64_t queens = board_bitboard(board, PieceQueen, color);
-    int king = ctz_ll(board_bitboard(board, PieceKing, color));
-    uint64_t friends = board_pieces(board, color);
-    uint64_t enemies = board_pieces(board, color_inverse(color));
+    Color friendly_color = board->current_turn;
+    Color enemy_color = color_inverse(friendly_color);
+    uint64_t pawns = board_bitboard(board, PiecePawn, friendly_color);
+    uint64_t knights = board_bitboard(board, PieceKnight, friendly_color);
+    uint64_t bishops = board_bitboard(board, PieceBishop, friendly_color);
+    uint64_t rooks = board_bitboard(board, PieceRook, friendly_color);
+    uint64_t queens = board_bitboard(board, PieceQueen, friendly_color);
+    int king = ctz_ll(board_bitboard(board, PieceKing, friendly_color));
+    uint64_t friends = board_pieces(board, friendly_color);
+    uint64_t enemies = board_pieces(board, enemy_color);
     uint64_t blockers = friends | enemies;
 
     // Pawns
     // En passant
     if (board->flags & FLAG_CAN_EP) {
         target_file = board->flags >> 5;
-        target_rank = 2 + (3 * color);
+        target_rank = 2 + (3 * friendly_color);
         target = target_rank * 8 + target_file;
 
-        source_rank = target_rank + color_direction(color);
+        source_rank = target_rank + color_direction(friendly_color);
         int source_file_l = target_file - 1;
         int source_file_r = target_file + 1;
 
@@ -210,17 +211,18 @@ int move_gen_generate_moves(Board *board, Move *moves) {
     }
 
     // Forward moves
-    uint64_t pawn_home_single_move_rank = 0x0000ff0000000000 >> 24 * color;
+    uint64_t pawn_home_single_move_rank =
+        0x0000ff0000000000 >> 24 * friendly_color;
 
-    uint64_t single_targets = rrot(pawns, 8 + 48 * color) & ~blockers;
-    uint64_t double_targets =
-        rrot(single_targets & pawn_home_single_move_rank, 8 + 48 * color) &
-        ~blockers;
+    uint64_t single_targets = rrot(pawns, 8 + 48 * friendly_color) & ~blockers;
+    uint64_t double_targets = rrot(single_targets & pawn_home_single_move_rank,
+                                   8 + 48 * friendly_color) &
+                              ~blockers;
 
     for (target = 0; single_targets; single_targets >>= 1, target++) {
         if (!(single_targets & 1)) continue;
 
-        source = target + (8 * color_direction(color));
+        source = target + (8 * color_direction(friendly_color));
 
         if (target < 8 || target > 55) {
             moves[moves_i++] = new_move(source, target, MOVE_PROMOTION);
@@ -237,23 +239,23 @@ int move_gen_generate_moves(Board *board, Move *moves) {
          double_targets >>= 1, target++) {
         if (!(double_targets & 1)) continue;
 
-        source = target + (16 * color_direction(color));
+        source = target + (16 * color_direction(friendly_color));
         moves[moves_i++] = new_move(source, target, MOVE_DOUBLE_PUSH);
     }
 
     // Pawn captures
     // FIXME this is bad for branch prediction, use rrot or similar to
     // make branchless
-    uint64_t left_captures =
-        (color ? pawns << 7 : pawns >> 9) & enemies & ~0x8080808080808080;
-    uint64_t right_captures =
-        (color ? pawns << 9 : pawns >> 7) & enemies & ~0x0101010101010101;
+    uint64_t left_captures = (friendly_color ? pawns << 7 : pawns >> 9) &
+                             enemies & ~0x8080808080808080;
+    uint64_t right_captures = (friendly_color ? pawns << 9 : pawns >> 7) &
+                              enemies & ~0x0101010101010101;
 
     // Add to moves
     for (target = 0; left_captures; left_captures >>= 1, target++) {
         if (!(left_captures & 1)) continue;
 
-        source = color ? target - 7 : target + 9;
+        source = friendly_color ? target - 7 : target + 9;
 
         if (target < 8 || target > 55) {
             int base_flags = MOVE_PROMOTION | MOVE_CAPTURE;
@@ -268,7 +270,7 @@ int move_gen_generate_moves(Board *board, Move *moves) {
     for (target = 0; right_captures; right_captures >>= 1, target++) {
         if (!(right_captures & 1)) continue;
 
-        source = color ? target - 9 : target + 7;
+        source = friendly_color ? target - 9 : target + 7;
 
         if (target < 8 || target > 55) {
             int base_flags = MOVE_PROMOTION | MOVE_CAPTURE;
@@ -354,16 +356,29 @@ int move_gen_generate_moves(Board *board, Move *moves) {
     uint64_t castling_blockers;
 
     // Kingside
-    can_castle = board->flags & (FLAG_BLACK_KINGSIDE << (2 * color));
-    castling_blockers = blockers & (0x6000000000000000ULL >> (56 * color));
-    if (can_castle && !castling_blockers)
-        moves[moves_i++] = new_move(king, king + 2, MOVE_KINGSIDE);
+    can_castle = board->flags & (FLAG_BLACK_KINGSIDE << (2 * friendly_color));
+    castling_blockers =
+        blockers & (0x6000000000000000ULL >> (56 * friendly_color));
+    if (can_castle && !castling_blockers) {
+        // Check for checks
+        // TODO See if maintaining incremental attack table is faster
+        if (!board_square_attacked_by(board, king, enemy_color) &&
+            !board_square_attacked_by(board, king + 1, enemy_color) &&
+            !board_square_attacked_by(board, king + 2, enemy_color))
+            moves[moves_i++] = new_move(king, king + 2, MOVE_KINGSIDE);
+    }
 
     // Queenside
-    can_castle = board->flags & (FLAG_BLACK_QUEENSIDE << (2 * color));
-    castling_blockers = blockers & (0xe00000000000000ULL >> (56 * color));
-    if (can_castle && !castling_blockers)
-        moves[moves_i++] = new_move(king, king - 2, MOVE_QUEENSIDE);
+    can_castle = board->flags & (FLAG_BLACK_QUEENSIDE << (2 * friendly_color));
+    castling_blockers =
+        blockers & (0xe00000000000000ULL >> (56 * friendly_color));
+    if (can_castle && !castling_blockers) {
+        // Check for checks
+        if (!board_square_attacked_by(board, king, enemy_color) &&
+            !board_square_attacked_by(board, king - 1, enemy_color) &&
+            !board_square_attacked_by(board, king - 2, enemy_color))
+            moves[moves_i++] = new_move(king, king - 2, MOVE_QUEENSIDE);
+    }
 
     return moves_i;
 }

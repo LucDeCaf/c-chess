@@ -6,9 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-const char PIECE_CHARS[12] = "nbrqkpNBRQKP";
+const char PIECE_CHARS[12] = {'n', 'b', 'r', 'q', 'k', 'p',
+                              'N', 'B', 'R', 'Q', 'K', 'P'};
 
-int load_fen(Board *board, char *fen) {
+int load_fen(Board *board, char *fen, int write_on_error) {
     Board new_board;
 
     int len = strlen(fen);
@@ -27,10 +28,14 @@ int load_fen(Board *board, char *fen) {
     for (i = 0; i < len; i++) {
         int square = rank * 8 + file;
         if (square < 0 || square > 63) {
-            return -1;
+            if (write_on_error) *board = new_board;
+            return FEN_E_BOARD_STR;
         }
 
-        if (fen[i] == ' ') return -1;
+        if (fen[i] == ' ') {
+            if (write_on_error) *board = new_board;
+            return FEN_E_BOARD_STR;
+        }
 
         int skip;
         switch (fen[i]) {
@@ -96,7 +101,8 @@ int load_fen(Board *board, char *fen) {
         case '/':
             break;
         default:
-            return -1;
+            if (write_on_error) *board = new_board;
+            return FEN_E_BOARD_STR;
         }
 
         if (file > 7) {
@@ -109,7 +115,10 @@ int load_fen(Board *board, char *fen) {
 
     // Skip piece and following space
     i += 2;
-    if (i >= len) return -2;
+    if (i >= len) {
+        if (write_on_error) *board = new_board;
+        return FEN_E_COLOR;
+    }
 
     switch (fen[i++]) {
     case 'w':
@@ -119,7 +128,8 @@ int load_fen(Board *board, char *fen) {
         new_board.current_turn = Black;
         break;
     default:
-        return -2;
+        if (write_on_error) *board = new_board;
+        return FEN_E_COLOR;
     }
 
     // Castling rights
@@ -142,12 +152,16 @@ int load_fen(Board *board, char *fen) {
         case '-':
             break;
         default:
-            return -3;
+            if (write_on_error) *board = new_board;
+            return FEN_E_CASTLING;
         }
 
     // Only EP file and current turn are needed to get EP square
     i++;
-    if (i >= len) return -4;
+    if (i >= len) {
+        if (write_on_error) *board = new_board;
+        return FEN_E_EN_PASSANT;
+    }
     switch (fen[i]) {
     case 'a':
         new_board.flags |= FLAG_CAN_EP;
@@ -176,7 +190,8 @@ int load_fen(Board *board, char *fen) {
     case '-':
         break;
     default:
-        return -4;
+        if (write_on_error) *board = new_board;
+        return FEN_E_EN_PASSANT;
     }
     // Skip rank + space
     i += 2;
@@ -184,7 +199,8 @@ int load_fen(Board *board, char *fen) {
     // Halfmoves
     int halfmoves, fullmoves;
     if (sscanf(fen + i, " %d %d", &halfmoves, &fullmoves) != 2) {
-        return -5;
+        if (write_on_error) *board = new_board;
+        return FEN_E_MOVES;
     }
 
     new_board.halfmoves = halfmoves;

@@ -1,5 +1,9 @@
+# build
 /build/
 /bin/
-/lib/
+
+# profiling
 gmon.out
 report.txt
+*.trace
+
