@@ -17,9 +17,11 @@ int load_fen(Board *board, char *fen, int write_on_error) {
     int i;
 
     // Clear new board
-    for (i = 0; i < 12; i++) {
+    for (i = 0; i < 12; i++)
         new_board.bitboards[i] = 0;
-    }
+    for (i = 0; i < 64; i++)
+        new_board.pieces[i] = PieceNone;
+
     new_board.flags = 0;
     new_board.current_turn = White;
     new_board.halfmoves = 0;

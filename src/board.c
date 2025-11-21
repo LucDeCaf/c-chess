@@ -7,7 +7,6 @@
 #include "square.h"
 #include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 
 enum {
     BB_KNIGHT_BLACK = 0,
@@ -25,45 +24,51 @@ enum {
 };
 
 void board_init(Board *board) {
-    // Starting position
-    board->bitboards[BB_KNIGHT_BLACK] = 0x4200000000000000;
-    board->bitboards[BB_BISHOP_BLACK] = 0x2400000000000000;
-    board->bitboards[BB_ROOK_BLACK] = 0x8100000000000000;
-    board->bitboards[BB_QUEEN_BLACK] = 0x800000000000000;
-    board->bitboards[BB_KING_BLACK] = 0x1000000000000000;
-    board->bitboards[BB_PAWN_BLACK] = 0xff000000000000;
-    board->bitboards[BB_KNIGHT_WHITE] = 0x42;
-    board->bitboards[BB_BISHOP_WHITE] = 0x24;
-    board->bitboards[BB_ROOK_WHITE] = 0x81;
-    board->bitboards[BB_QUEEN_WHITE] = 0x8;
-    board->bitboards[BB_KING_WHITE] = 0x10;
-    board->bitboards[BB_PAWN_WHITE] = 0xff00;
+    for (int i = 0; i < 12; i++)
+        board->bitboards[i] = 0ULL;
+    for (int i = 0; i < 64; i++)
+        board->pieces[i] = PieceNone;
 
     // White
-    board->pieces[A1] = PieceRook | (1 << 4);
-    board->pieces[B1] = PieceKnight | (1 << 4);
-    board->pieces[C1] = PieceBishop | (1 << 4);
-    board->pieces[D1] = PieceQueen | (1 << 4);
-    board->pieces[E1] = PieceKing | (1 << 4);
-    board->pieces[F1] = PieceBishop | (1 << 4);
-    board->pieces[G1] = PieceKnight | (1 << 4);
-    board->pieces[H1] = PieceRook | (1 << 4);
-    for (int i = A2; i < A3; i++)
-        board->pieces[i] = PiecePawn | (1 << 4);
+    board_add_piece(board, A1, PieceRook, White);
+    board_add_piece(board, B1, PieceKnight, White);
+    board_add_piece(board, C1, PieceBishop, White);
+    board_add_piece(board, D1, PieceQueen, White);
+    board_add_piece(board, E1, PieceKing, White);
+    board_add_piece(board, F1, PieceBishop, White);
+    board_add_piece(board, G1, PieceKnight, White);
+    board_add_piece(board, H1, PieceRook, White);
+    // White pawns
+    board_add_piece(board, A2, PiecePawn, White);
+    board_add_piece(board, B2, PiecePawn, White);
+    board_add_piece(board, C2, PiecePawn, White);
+    board_add_piece(board, D2, PiecePawn, White);
+    board_add_piece(board, E2, PiecePawn, White);
+    board_add_piece(board, F2, PiecePawn, White);
+    board_add_piece(board, G2, PiecePawn, White);
+    board_add_piece(board, H2, PiecePawn, White);
+
     // Black
-    board->pieces[A8] = PieceRook;
-    board->pieces[B8] = PieceKnight;
-    board->pieces[C8] = PieceBishop;
-    board->pieces[D8] = PieceQueen;
-    board->pieces[E8] = PieceKing;
-    board->pieces[F8] = PieceBishop;
-    board->pieces[G8] = PieceKnight;
-    board->pieces[H8] = PieceRook;
-    for (int i = A7; i < A8; i++)
-        board->pieces[i] = PiecePawn;
+    board_add_piece(board, A8, PieceRook, Black);
+    board_add_piece(board, B8, PieceKnight, Black);
+    board_add_piece(board, C8, PieceBishop, Black);
+    board_add_piece(board, D8, PieceQueen, Black);
+    board_add_piece(board, E8, PieceKing, Black);
+    board_add_piece(board, F8, PieceBishop, Black);
+    board_add_piece(board, G8, PieceKnight, Black);
+    board_add_piece(board, H8, PieceRook, Black);
+    // Black pawns
+    board_add_piece(board, A7, PiecePawn, Black);
+    board_add_piece(board, B7, PiecePawn, Black);
+    board_add_piece(board, C7, PiecePawn, Black);
+    board_add_piece(board, D7, PiecePawn, Black);
+    board_add_piece(board, E7, PiecePawn, Black);
+    board_add_piece(board, F7, PiecePawn, Black);
+    board_add_piece(board, G7, PiecePawn, Black);
+    board_add_piece(board, H7, PiecePawn, Black);
 
     // Metadata
-    board->flags = 0xf; // 0b0000_1111
+    board->flags = 0x0f; // 0b0000_1111
     board->current_turn = White;
     board->halfmoves = 0;
     board->fullmoves = 1;
@@ -81,7 +86,7 @@ uint64_t *board_bitboard_p(Board *board, Piece piece, Color color) {
 void board_add_piece(Board *board, int square, Piece piece, Color color) {
     *board_bitboard_p(board, piece, color) |= 1ULL << square;
     // Store color of piece with piece
-    board->pieces[square] = piece | color << 4;
+    board->pieces[square] = piece | (color << 4);
 }
 
 // NB: Error to call this on PieceNone
@@ -117,11 +122,6 @@ void board_make_move(Board *board, Move move) {
     // Remove moved piece from source
     board_clear_piece(board, source);
 
-    // Move moved piece, unless promotion
-    Piece added_piece =
-        (flags & MOVE_PROMOTION) ? (flags & MOVE_SPECIAL) : moved_piece;
-    board_add_piece(board, target, added_piece, color);
-
     // Handle double moves and EP flags
     if (flags == MOVE_DOUBLE_PUSH) {
         // If double move, allow EP
@@ -139,32 +139,33 @@ void board_make_move(Board *board, Move move) {
 
     // If castling, move rook and unset castling
     else if (flags == MOVE_KINGSIDE) {
-        const uint64_t ROOK_MASK = 0xa000000000000000;
-
-        int shift = color * 56;
-        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
-        *rook_bb ^= ROOK_MASK >> shift;
+        int rook_source = color ? H1 : H8;
+        int rook_target = color ? F1 : F8;
+        board_clear_piece(board, rook_source);
+        board_add_piece(board, rook_target, PieceRook, color);
     } else if (flags == MOVE_QUEENSIDE) {
-        const uint64_t ROOK_MASK = 0x900000000000000;
-
-        int shift = color * 56;
-        uint64_t *rook_bb = board_bitboard_p(board, PieceRook, color);
-        *rook_bb ^= ROOK_MASK >> shift;
+        int rook_source = color ? A1 : A8;
+        int rook_target = color ? D1 : D8;
+        board_clear_piece(board, rook_source);
+        board_add_piece(board, rook_target, PieceRook, color);
     }
 
     // If capture, remove captured piece
     if (captured_piece != PieceNone) {
-        uint64_t *captured_bb =
-            board_bitboard_p(board, captured_piece, color_inverse(color));
-        *captured_bb ^= square_mask(target);
+        board_clear_piece(board, target);
     }
+
+    // Move moved piece
+    Piece added_piece =
+        (flags & MOVE_PROMOTION) ? (flags & MOVE_SPECIAL) : moved_piece;
+    board_add_piece(board, target, added_piece, color);
 
     // Unset castling flags if necessary
     uint8_t clear_mask =
-        ((source == A1 | target == A1) * FLAG_WHITE_QUEENSIDE) |
-        ((source == H1 | target == H1) * FLAG_WHITE_KINGSIDE) |
-        ((source == A8 | target == A8) * FLAG_BLACK_QUEENSIDE) |
-        ((source == H8 | target == H8) * FLAG_BLACK_KINGSIDE) |
+        (((source == A1) | (target == A1)) * FLAG_WHITE_QUEENSIDE) |
+        (((source == H1) | (target == H1)) * FLAG_WHITE_KINGSIDE) |
+        (((source == A8) | (target == A8)) * FLAG_BLACK_QUEENSIDE) |
+        (((source == H8) | (target == H8)) * FLAG_BLACK_KINGSIDE) |
         ((moved_piece == PieceKing) * (FLAG_BLACK_CASTLE << (color * 2)));
     uint8_t castling_bits = (board->flags & 0x0f) & ~clear_mask;
     board->flags = (board->flags & 0xf0) | castling_bits;
@@ -186,7 +187,7 @@ uint64_t board_all_pieces(Board *board) {
 // TODO check if storing `Piece pieces[64]` in board is significantly faster
 // than this
 Piece board_piece_at(Board *board, int square) {
-    return board->pieces[square];
+    return board->pieces[square] & 0xf;
 }
 
 int board_square_attacked_by(Board *board, int square, Color attacking_color) {

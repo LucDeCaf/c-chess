@@ -200,25 +200,26 @@ void handle_dump(Board *board) {
     if (!(flags & 0xf)) printf("-");
     printf("\n");
     printf("- En passant: ");
-    if (flags & MOVE_EN_PASSANT)
+    if (flags & FLAG_CAN_EP)
         printf("%c%c", 'a' + (flags >> 5), board->current_turn ? '6' : '3');
     else
         printf("-");
     printf("\n");
-    /* Too noisy to also print bitboards */
-    // printf("** Bitboards\n");
-    // dump_bb("Black Knights", board->bitboards[0]);
-    // dump_bb("Black Bishops", board->bitboards[1]);
-    // dump_bb("Black Rooks", board->bitboards[2]);
-    // dump_bb("Black Queens", board->bitboards[3]);
-    // dump_bb("Black King", board->bitboards[4]);
-    // dump_bb("Black Pawns", board->bitboards[5]);
-    // dump_bb("White Knights", board->bitboards[6]);
-    // dump_bb("White Bishops", board->bitboards[7]);
-    // dump_bb("White Rooks", board->bitboards[8]);
-    // dump_bb("White Queens", board->bitboards[9]);
-    // dump_bb("White King", board->bitboards[10]);
-    // dump_bb("White Pawns", board->bitboards[11]);
+    printf("- Pieces Array:\n");
+    for (int i = 7; i >= 0; i--) {
+        for (int j = 0; j < 8; j++) {
+            int square = i * 8 + j;
+            Piece piece = board->pieces[square] & 0xf;
+            Color color = board->pieces[square] >> 4;
+            if (piece == PieceNone)
+                printf("- ");
+            else if ((0 <= piece && piece <= 6) && (color == 0 || color == 1))
+                printf("%c ", piece_char(piece, color));
+            else
+                printf("! ");
+        }
+        printf("\n");
+    }
 }
 
 void handle_moves(Board *board) {
@@ -267,16 +268,8 @@ void handle_set(Board *board, char *buf) {
 
     printf("square: %d\npiece: %d\ncolor: %d\n", square, piece, color);
 
-    for (int piece_i = 0; piece_i < 6; piece_i++) {
-        for (int color_i = 0; color_i < 2; color_i++) {
-            uint64_t *bb_p = board_bitboard_p(board, piece_i, color_i);
-
-            if (piece_i == piece && color_i == color)
-                *bb_p |= 1ULL << square;
-            else
-                *bb_p &= ~(1ULL << square);
-        }
-    }
+    if (board->pieces[square] != PieceNone) board_clear_piece(board, square);
+    board_add_piece(board, square, piece, color);
 }
 
 Move move_from_string(char *buf) {

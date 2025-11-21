@@ -1,5 +1,4 @@
 #include "move.h"
-#include "square.h"
 #include <stdint.h>
 
 Move new_move(int source, int target, uint8_t flags) {
