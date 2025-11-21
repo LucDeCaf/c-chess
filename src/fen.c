@@ -40,51 +40,51 @@ int load_fen(Board *board, char *fen, int write_on_error) {
         int skip;
         switch (fen[i]) {
         case 'n':
-            *board_bitboard_p(&new_board, PieceKnight, Black) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceKnight, Black);
             file++;
             break;
         case 'b':
-            *board_bitboard_p(&new_board, PieceBishop, Black) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceBishop, Black);
             file++;
             break;
         case 'r':
-            *board_bitboard_p(&new_board, PieceRook, Black) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceRook, Black);
             file++;
             break;
         case 'q':
-            *board_bitboard_p(&new_board, PieceQueen, Black) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceQueen, Black);
             file++;
             break;
         case 'k':
-            *board_bitboard_p(&new_board, PieceKing, Black) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceKing, Black);
             file++;
             break;
         case 'p':
-            *board_bitboard_p(&new_board, PiecePawn, Black) |= 1ULL << square;
+            board_add_piece(&new_board, square, PiecePawn, Black);
             file++;
             break;
         case 'N':
-            *board_bitboard_p(&new_board, PieceKnight, White) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceKnight, White);
             file++;
             break;
         case 'B':
-            *board_bitboard_p(&new_board, PieceBishop, White) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceBishop, White);
             file++;
             break;
         case 'R':
-            *board_bitboard_p(&new_board, PieceRook, White) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceRook, White);
             file++;
             break;
         case 'Q':
-            *board_bitboard_p(&new_board, PieceQueen, White) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceQueen, White);
             file++;
             break;
         case 'K':
-            *board_bitboard_p(&new_board, PieceKing, White) |= 1ULL << square;
+            board_add_piece(&new_board, square, PieceKing, White);
             file++;
             break;
         case 'P':
-            *board_bitboard_p(&new_board, PiecePawn, White) |= 1ULL << square;
+            board_add_piece(&new_board, square, PiecePawn, White);
             file++;
             break;
         case '1':

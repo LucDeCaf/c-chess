@@ -39,7 +39,31 @@ void board_init(Board *board) {
     board->bitboards[BB_KING_WHITE] = 0x10;
     board->bitboards[BB_PAWN_WHITE] = 0xff00;
 
-    board->flags = 15; // 0b0000_1111
+    // White
+    board->pieces[A1] = PieceRook | (1 << 4);
+    board->pieces[B1] = PieceKnight | (1 << 4);
+    board->pieces[C1] = PieceBishop | (1 << 4);
+    board->pieces[D1] = PieceQueen | (1 << 4);
+    board->pieces[E1] = PieceKing | (1 << 4);
+    board->pieces[F1] = PieceBishop | (1 << 4);
+    board->pieces[G1] = PieceKnight | (1 << 4);
+    board->pieces[H1] = PieceRook | (1 << 4);
+    for (int i = A2; i < A3; i++)
+        board->pieces[i] = PiecePawn | (1 << 4);
+    // Black
+    board->pieces[A8] = PieceRook;
+    board->pieces[B8] = PieceKnight;
+    board->pieces[C8] = PieceBishop;
+    board->pieces[D8] = PieceQueen;
+    board->pieces[E8] = PieceKing;
+    board->pieces[F8] = PieceBishop;
+    board->pieces[G8] = PieceKnight;
+    board->pieces[H8] = PieceRook;
+    for (int i = A7; i < A8; i++)
+        board->pieces[i] = PiecePawn;
+
+    // Metadata
+    board->flags = 0xf; // 0b0000_1111
     board->current_turn = White;
     board->halfmoves = 0;
     board->fullmoves = 1;
@@ -51,6 +75,21 @@ uint64_t board_bitboard(Board *board, Piece piece, Color color) {
 
 uint64_t *board_bitboard_p(Board *board, Piece piece, Color color) {
     return &board->bitboards[piece + (color * 6)];
+}
+
+// NB: Error to call this with PieceNone
+void board_add_piece(Board *board, int square, Piece piece, Color color) {
+    *board_bitboard_p(board, piece, color) |= 1ULL << square;
+    // Store color of piece with piece
+    board->pieces[square] = piece | color << 4;
+}
+
+// NB: Error to call this on PieceNone
+void board_clear_piece(Board *board, int square) {
+    Color color = board->pieces[square] >> 4;
+    Piece piece = board->pieces[square] & 0xf;
+    *board_bitboard_p(board, piece, color) &= ~(1ULL << square);
+    board->pieces[square] = PieceNone;
 }
 
 uint64_t board_pieces(Board *board, Color color) {
@@ -75,17 +114,13 @@ void board_make_move(Board *board, Move move) {
     Piece moved_piece = board_piece_at(board, source);
     Piece captured_piece = board_piece_at(board, target);
 
-    uint64_t *moved_bb = board_bitboard_p(board, moved_piece, color);
+    // Remove moved piece from source
+    board_clear_piece(board, source);
 
     // Move moved piece, unless promotion
-    if (flags & MOVE_PROMOTION) {
-        Piece prom_piece = flags & MOVE_SPECIAL;
-        uint64_t *prom_bb = board_bitboard_p(board, prom_piece, color);
-        *moved_bb ^= 1ULL << source;
-        *prom_bb |= 1ULL << target;
-    } else {
-        *moved_bb ^= (1ULL << source) | (1ULL << target);
-    }
+    Piece added_piece =
+        (flags & MOVE_PROMOTION) ? (flags & MOVE_SPECIAL) : moved_piece;
+    board_add_piece(board, target, added_piece, color);
 
     // Handle double moves and EP flags
     if (flags == MOVE_DOUBLE_PUSH) {
@@ -151,17 +186,7 @@ uint64_t board_all_pieces(Board *board) {
 // TODO check if storing `Piece pieces[64]` in board is significantly faster
 // than this
 Piece board_piece_at(Board *board, int square) {
-    uint64_t mask = 1ULL << square;
-    if (!(board_all_pieces(board) & mask)) return PieceNone;
-
-    for (int i = 0; i < 12; i++) {
-        if (board->bitboards[i] & mask) {
-            Piece piece = i > 5 ? i - 6 : i;
-            return piece;
-        }
-    }
-
-    return PieceNone;
+    return board->pieces[square];
 }
 
 int board_square_attacked_by(Board *board, int square, Color attacking_color) {

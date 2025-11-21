@@ -11,6 +11,7 @@ typedef struct {
     uint8_t flags;      // en passant, castling rights
     uint8_t halfmoves;  // 75 move rule
     uint16_t fullmoves; // Longest possible game = ~8800 fullmoves
+    Piece pieces[64];   // Saves on expensive for-loops for finding pieces
 } Board;
 
 // clang-format off
@@ -27,6 +28,8 @@ typedef struct {
 void board_init(Board *);
 void board_make_move(Board *, Move);
 Piece board_piece_at(Board *, int);
+void board_add_piece(Board *, int, Piece, Color);
+void board_clear_piece(Board *, int);
 uint64_t board_bitboard(Board *, Piece, Color);
 uint64_t *board_bitboard_p(Board *, Piece, Color);
 uint64_t board_pieces(Board *, Color);
