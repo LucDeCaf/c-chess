@@ -123,18 +123,14 @@ void board_make_move(Board *board, Move move) {
     board_clear_piece(board, source);
 
     // Handle double moves and EP flags
-    if (flags == MOVE_DOUBLE_PUSH) {
-        // If double move, allow EP
-        board->flags |= FLAG_CAN_EP | (square_file(source) << 5);
-    } else {
-        // Else, clear en passant bits
-        board->flags &= 0x0f;
-    }
+    board->flags &= 0x0f;
+    board->flags |= (flags == MOVE_DOUBLE_PUSH) *
+                    (FLAG_CAN_EP | (square_file(source) << 5));
 
     // If EP, capture pawn
     if (flags == MOVE_EN_PASSANT) {
         captured_piece = PiecePawn;
-        target += (8 * color_direction(color));
+        board_clear_piece(board, target + 8 * color_direction(color));
     }
 
     // If castling, move rook and unset castling
@@ -191,19 +187,20 @@ Piece board_piece_at(Board *board, int square) {
 }
 
 int board_square_attacked_by(Board *board, int square, Color attacking_color) {
-    // Pawn attacks
-    uint64_t pawns = board_bitboard(board, PiecePawn, attacking_color);
-    uint64_t pawn_targets = attacking_color ? BLACK_PAWN_TARGETS[square]
-                                            : WHITE_PAWN_TARGETS[square];
-    if (pawns & pawn_targets) return 1;
+
+    // Knight attacks
+    uint64_t knights = board_bitboard(board, PieceKnight, attacking_color);
+    if (knights & KNIGHT_TARGETS[square]) return 1;
 
     // King attacks
     uint64_t kings = board_bitboard(board, PieceKing, attacking_color);
     if (kings & KING_TARGETS[square]) return 1;
 
-    // Knight attacks
-    uint64_t knights = board_bitboard(board, PieceKnight, attacking_color);
-    if (knights & KNIGHT_TARGETS[square]) return 1;
+    // Pawn attacks
+    uint64_t pawns = board_bitboard(board, PiecePawn, attacking_color);
+    uint64_t pawn_targets =
+        PAWN_TARGETS[color_inverse(attacking_color)][square];
+    if (pawns & pawn_targets) return 1;
 
     // Rooks & queens
     uint64_t blockers = board_pieces(board, White) | board_pieces(board, Black);

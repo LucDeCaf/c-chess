@@ -7,7 +7,6 @@
 #include "piece.h"
 #include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 int magic_index(const MagicEntry *entry, uint64_t blockers) {

@@ -223,7 +223,6 @@ char *to_fen(Board *board) {
         for (int file = 0; file < 8; file++) {
             int no_piece = 1;
             int square = rank * 8 + file;
-            printf("square: %d\n", square);
             uint64_t mask = 1ULL << square;
 
             for (int bb = 0; bb < 12; bb++) {

@@ -145,7 +145,6 @@ MagicEntry *find_magic(int square, int index_bits, int bishop) {
             if (table[magic_i] == 0ULL)
                 table[magic_i] = moves;
             else if (table[magic_i] != moves) {
-                // printf("destructive collision\n");
                 fail = 1;
                 break;
             }
